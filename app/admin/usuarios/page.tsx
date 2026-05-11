@@ -1,9 +1,10 @@
 import { AdminNav } from "@/components/AdminNav";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { SubmitButton } from "@/components/SubmitButton";
+import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { requireAdmin } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { createAdminUser, deleteAdminUser, updateOwnPassword } from "../actions";
+import { createAdminUser, deleteAdminUser } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,37 +32,7 @@ export default async function UsuariosAdminPage() {
         <p className="mt-1 text-xs text-text-muted">
           Al cambiarla se cerrará la sesión en otros dispositivos (la actual se mantiene).
         </p>
-        <form action={updateOwnPassword} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-          <input
-            autoComplete="current-password"
-            className="rounded-lg bg-court-900 px-3 py-2"
-            name="currentPassword"
-            placeholder="Contraseña actual"
-            required
-            type="password"
-          />
-          <input
-            autoComplete="new-password"
-            className="rounded-lg bg-court-900 px-3 py-2"
-            minLength={8}
-            name="newPassword"
-            placeholder="Nueva (mínimo 8)"
-            required
-            type="password"
-          />
-          <input
-            autoComplete="new-password"
-            className="rounded-lg bg-court-900 px-3 py-2"
-            minLength={8}
-            name="confirmPassword"
-            placeholder="Repite la nueva"
-            required
-            type="password"
-          />
-          <SubmitButton className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950">
-            Cambiar
-          </SubmitButton>
-        </form>
+        <PasswordChangeForm />
       </section>
 
       <div className="mt-6 space-y-2">

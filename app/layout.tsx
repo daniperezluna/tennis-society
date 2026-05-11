@@ -32,11 +32,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: "Apipana Tennis Society",
+    url: siteUrl,
   },
   twitter: {
     card: "summary_large_image",
     title: "Apipana Tennis Society",
     description: "Liga, copa y crónicas. Todo en un sitio.",
+  },
+  other: {
+    "og:logo": `${siteUrl}/brand/apipana-logo-white.png`,
   },
 };
 
