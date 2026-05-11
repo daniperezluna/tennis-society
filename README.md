@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tennis Society
 
-## Getting Started
+Aplicación web para gestionar una liga amateur de Virtua Tennis (arcade) entre compañeros: tres divisiones, calendario de liga ida y vuelta, copa eliminatoria con cabezas de serie, panel de administración con usuarios y un asistente IA opcional para redactar noticias.
 
-First, run the development server:
+## Cómo funciona la competición
+
+### Liga
+
+- **Tres divisiones** (Hierba, Arcilla, Dura) con su propio calendario independiente.
+- **Sistema doble round-robin**: cada jugador se enfrenta dos veces contra el resto de su división, una como local y otra como visitante.
+- **Formato del partido**: al mejor de 3 sets. Resultados posibles: `2-0`, `2-1`, `1-2`, `0-2`.
+- **Puntuación**:
+  - Victoria → 1 punto.
+  - Derrota → 0 puntos.
+- **Walkover (W/O)**: si un jugador no se presenta, su rival se lleva la victoria sin que cuenten los sets ni se incremente el `Jugados`. La columna de diferencia de sets queda intacta para los dos.
+- **Desempates** en la clasificación (en este orden):
+  1. Victorias.
+  2. Diferencia de sets (sets ganados − sets perdidos).
+  3. Head-to-head (quién ganó el enfrentamiento directo).
+  4. Orden alfabético del nombre.
+
+### Copa
+
+- Eliminatoria directa, single elimination.
+- **Solo participan los jugadores marcados con `COPA = Sí`** en el panel de equipos.
+- El cuadro se ajusta automáticamente a la siguiente potencia de 2 (4, 8, 16, 32 o 64) según el número de inscritos.
+- **Byes / cabezas de serie**:
+  - Los jugadores que mejor van en la liga reciben los byes.
+  - Ranking de seeding: posición 1 de cada división, luego posición 2 de cada división, etc. (D1.1, D2.1, D3.1, D1.2, D2.2, D3.2…).
+  - Las posiciones de bye se distribuyen por bit-reversal: el seed 1 y el seed 2 quedan en mitades opuestas del cuadro y, en el peor de los casos, solo se cruzan en la final.
+- **Avance**: el ganador de cada eliminatoria pasa automáticamente al partido siguiente. Cada `CupMatch` tiene `nextMatchId` y `nextSlot` precalculados, así el sistema sabe exactamente a qué hueco enviar al vencedor.
+- **Walkover**: igual que en liga, el rival avanza sin que haya score real.
+- **Edición manual**: desde admin se puede cambiar manualmente los equipos de un partido. Al hacerlo se resetea la cadena de avances posteriores que dependían de él.
+
+## Stack
+
+- Next.js 16 + React 19
+- TypeScript
+- Tailwind CSS 4
+- Prisma 7 con Postgres
+- Adapter `@prisma/adapter-pg`
+- Auth propia con bcrypt + sesiones en BD
+- Zod para validación
+- AI SDK + Gemini (opcional)
+
+## Requisitos
+
+- Node.js 20.x
+- Postgres (local o remoto, Neon va bien)
+
+## Instalación
+
+```bash
+npm install
+```
+
+## Variables de entorno
+
+```env
+DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"
+
+# Opcional, activa el asistente IA en /admin/noticias y la frase dinámica de la home
+GOOGLE_GENERATIVE_AI_API_KEY=""
+```
+
+## Preparar base de datos
+
+```bash
+npx prisma migrate dev --name init
+npm run seed                          # opcional: equipos, calendarios y copa de ejemplo
+```
+
+## Crear el primer admin
+
+Como la app no tiene auto-registro, hay que crear el primer usuario por consola:
+
+```bash
+npx tsx scripts/create-admin.ts tu@email.com tu-password "Tu Nombre"
+```
+
+A partir de ahí los demás admins se crean desde `/admin/usuarios`.
+
+Para entornos donde solo tienes acceso SQL (como el panel de Neon o Vercel Postgres), genera el hash en local y haz el INSERT manualmente:
+
+```bash
+npx tsx scripts/hash-password.ts tu-password
+```
+
+```sql
+INSERT INTO "AdminUser" (email, "passwordHash", name)
+VALUES ('tu@email', '$2b$12$...', 'Tu Nombre');
+```
+
+## Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Rutas:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `/` — Portada con líderes de cada división, stats y últimas noticias.
+- `/liga` — Clasificación y calendario por división.
+- `/copa` — Cuadro de la copa en formato bracket visual.
+- `/noticias` — Crónicas y avisos.
+- `/admin` — Panel de gestión (requiere login).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Panel admin
 
-## Learn More
+Secciones:
 
-To learn more about Next.js, take a look at the following resources:
+- **Equipos**: alta, edición, baja. Cada equipo tiene división y flag `COPA`.
+- **Ligas**: ver todos los partidos agrupados por enfrentamiento (ida + vuelta juntos), filtros por jugador y estado, meter resultados con un click, regenerar calendario.
+- **Copa**: sortear nueva copa, ver el bracket, meter resultados, walkovers, editar equipos de un partido manualmente.
+- **Noticias**: alta, baja, asistente IA para redactar borradores en streaming.
+- **Usuarios**: alta y baja de admins. No puedes borrarte a ti mismo ni dejar la BD sin admins.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev                              # Servidor de desarrollo
+npm run build                            # prisma generate + migrate deploy + next build
+npm run start                            # Servir build de producción
+npm run lint                             # ESLint
+npm run seed                             # Poblar BD con equipos y calendario de ejemplo
+npx tsx scripts/create-admin.ts ...      # Crear admin directamente en BD
+npx tsx scripts/hash-password.ts ...     # Generar hash bcrypt sin tocar BD
+```
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Build automático ejecuta `prisma generate`, aplica las migraciones con `prisma migrate deploy` y compila Next.js. Las únicas variables que necesitas en el entorno son `DATABASE_URL` y, si quieres IA, `GOOGLE_GENERATIVE_AI_API_KEY`.

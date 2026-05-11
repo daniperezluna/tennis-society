@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MatchStatus {
+  pending
+  played
+  walkover
+}
+
+enum CupRound {
+  roundOf64
+  roundOf32
+  roundOf16
+  quarterfinal
+  semifinal
+  final
+}
+
+model Team {
+  id          Int      @id @default(autoincrement())
+  name        String
+  logoUrl     String?
+  division    Int
+  cupEnabled  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  homeMatches    Match[]    @relation("HomeTeam")
+  awayMatches    Match[]    @relation("AwayTeam")
+  homeCupMatches CupMatch[] @relation("HomeCupTeam")
+  awayCupMatches CupMatch[] @relation("AwayCupTeam")
+}
+
+model Match {
+  id         Int         @id @default(autoincrement())
+  division   Int
+  homeTeamId Int
+  awayTeamId Int
+  homeSets   Int?
+  awaySets   Int?
+  setDetails String?
+  matchday   Int?
+  date       DateTime?
+  status     MatchStatus @default(pending)
+  createdAt  DateTime    @default(now())
+
+  homeTeam Team @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team @relation("AwayTeam", fields: [awayTeamId], references: [id])
+}
+
+model CupMatch {
+  id          Int         @id @default(autoincrement())
+  round       CupRound
+  order       Int         @default(0)
+  homeTeamId  Int?
+  awayTeamId  Int?
+  homeSets    Int?
+  awaySets    Int?
+  setDetails  String?
+  date        DateTime?
+  status      MatchStatus @default(pending)
+  createdAt   DateTime    @default(now())
+  nextMatchId Int?
+  nextSlot    String?
+
+  homeTeam    Team?      @relation("HomeCupTeam", fields: [homeTeamId], references: [id])
+  awayTeam    Team?      @relation("AwayCupTeam", fields: [awayTeamId], references: [id])
+  nextMatch   CupMatch?  @relation("CupAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
+  prevMatches CupMatch[] @relation("CupAdvance")
+}
+
+model AdminUser {
+  id           Int            @id @default(autoincrement())
+  email        String         @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime       @default(now())
+  sessions     AdminSession[]
+}
+
+model AdminSession {
+  id        String    @id
+  userId    Int
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model News {
+  id        Int      @id @default(autoincrement())
+  title     String
+  summary   String
+  content   String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+}
