@@ -1,6 +1,7 @@
 import { AdminNav } from "@/components/AdminNav";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SubmitButton } from "@/components/SubmitButton";
 import prisma from "@/lib/prisma";
 import { CUP_ROUND_LABELS, CUP_ROUNDS } from "@/lib/constants";
 import { requireAdmin } from "@/lib/auth";
@@ -107,9 +108,9 @@ export default async function CopaAdminPage() {
               </option>
             ))}
           </select>
-          <button className="rounded-xl bg-amber-300 px-3 py-2 font-black text-slate-950 md:col-span-4">
+          <SubmitButton className="rounded-xl bg-amber-300 px-3 py-2 font-black text-slate-950 md:col-span-4">
             Crear
-          </button>
+          </SubmitButton>
         </form>
       </details>
 
@@ -221,14 +222,13 @@ export default async function CopaAdminPage() {
                           ].map(([score, label]) => (
                             <form action={updateCupMatchResult} key={score}>
                               <input name="id" type="hidden" value={match.id} />
-                              <button
+                              <SubmitButton
                                 className="rounded-full bg-emerald-300 px-3 py-2 text-sm font-black text-slate-950"
                                 name="score"
-                                type="submit"
                                 value={score}
                               >
                                 {label}
-                              </button>
+                              </SubmitButton>
                             </form>
                           ))
                         ) : (
@@ -240,38 +240,35 @@ export default async function CopaAdminPage() {
                           <>
                             <form action={updateCupMatchResult}>
                               <input name="id" type="hidden" value={match.id} />
-                              <button
+                              <SubmitButton
                                 className="rounded-full border border-rose-300/40 bg-rose-950/30 px-3 py-2 text-sm font-bold text-rose-100"
                                 name="score"
-                                type="submit"
                                 value="wo-home"
                               >
                                 W/O · {homeName}
-                              </button>
+                              </SubmitButton>
                             </form>
                             <form action={updateCupMatchResult}>
                               <input name="id" type="hidden" value={match.id} />
-                              <button
+                              <SubmitButton
                                 className="rounded-full border border-rose-300/40 bg-rose-950/30 px-3 py-2 text-sm font-bold text-rose-100"
                                 name="score"
-                                type="submit"
                                 value="wo-away"
                               >
                                 W/O · {awayName}
-                              </button>
+                              </SubmitButton>
                             </form>
                           </>
                         )}
                         <form action={updateCupMatchResult}>
                           <input name="id" type="hidden" value={match.id} />
-                          <button
+                          <SubmitButton
                             className="rounded-full border border-white/15 px-3 py-2 text-sm font-bold text-slate-200"
                             name="score"
-                            type="submit"
                             value="pending"
                           >
                             Pendiente
-                          </button>
+                          </SubmitButton>
                         </form>
                       </div>
                     </article>

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createNews } from "@/app/admin/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function NewsForm({ hasAi }: { hasAi: boolean }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -130,9 +131,9 @@ export function NewsForm({ hasAi }: { hasAi: boolean }) {
         name="imageUrl"
         placeholder="Imagen URL (opcional)"
       />
-      <button className="rounded-lg bg-ball-500 px-3 py-2 font-bold text-court-950" type="submit">
+      <SubmitButton className="rounded-lg bg-ball-500 px-3 py-2 font-bold text-court-950" pendingLabel="Publicando...">
         Publicar
-      </button>
+      </SubmitButton>
     </form>
   );
 }

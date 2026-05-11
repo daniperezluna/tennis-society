@@ -1,5 +1,6 @@
 import { AdminNav } from "@/components/AdminNav";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { SubmitButton } from "@/components/SubmitButton";
 import { requireAdmin } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createAdminUser, deleteAdminUser, updateOwnPassword } from "../actions";
@@ -22,7 +23,7 @@ export default async function UsuariosAdminPage() {
         <input className="rounded-lg bg-court-900 px-3 py-2" name="email" placeholder="email" required type="email" />
         <input className="rounded-lg bg-court-900 px-3 py-2" name="name" placeholder="Nombre (opcional)" />
         <input className="rounded-lg bg-court-900 px-3 py-2" minLength={8} name="password" placeholder="Contraseña (mínimo 8)" required type="password" />
-        <button className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950" type="submit">Crear</button>
+        <SubmitButton className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950">Crear</SubmitButton>
       </form>
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-5">
@@ -57,9 +58,9 @@ export default async function UsuariosAdminPage() {
             required
             type="password"
           />
-          <button className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950" type="submit">
+          <SubmitButton className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950">
             Cambiar
-          </button>
+          </SubmitButton>
         </form>
       </section>
 

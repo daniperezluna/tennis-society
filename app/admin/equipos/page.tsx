@@ -1,5 +1,6 @@
 import { AdminNav } from "@/components/AdminNav";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { SubmitButton } from "@/components/SubmitButton";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -21,7 +22,7 @@ export default async function EquiposAdminPage() {
         <input className="rounded-xl bg-black/30 px-3 py-2" name="division" placeholder="División" type="number" min="1" max="3" required />
         <input className="rounded-xl bg-black/30 px-3 py-2" name="logoUrl" placeholder="Logo URL" />
         <label className="flex items-center gap-2 rounded-xl bg-black/30 px-3 py-2 text-sm"><input name="cupEnabled" type="checkbox" defaultChecked /> Copa</label>
-        <button className="rounded-xl bg-amber-300 px-3 py-2 font-black text-slate-950 md:col-span-5">Crear equipo</button>
+        <SubmitButton className="rounded-xl bg-amber-300 px-3 py-2 font-black text-slate-950 md:col-span-5">Crear equipo</SubmitButton>
       </form>
 
       <div className="mt-6 grid gap-4">
@@ -36,7 +37,7 @@ export default async function EquiposAdminPage() {
               <input className="rounded-xl bg-white/10 px-3 py-2" name="division" type="number" min="1" max="3" defaultValue={team.division} />
               <input className="rounded-xl bg-white/10 px-3 py-2" name="logoUrl" defaultValue={team.logoUrl ?? ""} />
               <label className="flex items-center gap-2 text-sm"><input name="cupEnabled" type="checkbox" defaultChecked={team.cupEnabled} /> Copa</label>
-              <button className="rounded-full bg-emerald-300 px-4 py-2 text-sm font-black text-slate-950">Guardar</button>
+              <SubmitButton className="rounded-full bg-emerald-300 px-4 py-2 text-sm font-black text-slate-950">Guardar</SubmitButton>
             </form>
             <form action={deleteTeam} className="mt-3 flex justify-end">
               <input name="id" type="hidden" value={team.id} />

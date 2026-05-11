@@ -1,6 +1,7 @@
 import { AdminNav } from "@/components/AdminNav";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SubmitButton } from "@/components/SubmitButton";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
@@ -170,28 +171,28 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
                               ].map(([score, label]) => (
                                 <form action={updateMatchResult} key={score}>
                                   <input name="id" type="hidden" value={match.id} />
-                                  <button className="rounded-full bg-emerald-300 px-3 py-2 text-sm font-black text-slate-950" name="score" type="submit" value={score}>
+                                  <SubmitButton className="rounded-full bg-emerald-300 px-3 py-2 text-sm font-black text-slate-950" name="score" value={score}>
                                     {label}
-                                  </button>
+                                  </SubmitButton>
                                 </form>
                               ))}
                               <form action={updateMatchResult}>
                                 <input name="id" type="hidden" value={match.id} />
-                                <button className="rounded-full border border-rose-300/40 bg-rose-950/30 px-3 py-2 text-sm font-bold text-rose-100" name="score" type="submit" value="wo-home">
+                                <SubmitButton className="rounded-full border border-rose-300/40 bg-rose-950/30 px-3 py-2 text-sm font-bold text-rose-100" name="score" value="wo-home">
                                   W/O · {match.homeTeam.name}
-                                </button>
+                                </SubmitButton>
                               </form>
                               <form action={updateMatchResult}>
                                 <input name="id" type="hidden" value={match.id} />
-                                <button className="rounded-full border border-rose-300/40 bg-rose-950/30 px-3 py-2 text-sm font-bold text-rose-100" name="score" type="submit" value="wo-away">
+                                <SubmitButton className="rounded-full border border-rose-300/40 bg-rose-950/30 px-3 py-2 text-sm font-bold text-rose-100" name="score" value="wo-away">
                                   W/O · {match.awayTeam.name}
-                                </button>
+                                </SubmitButton>
                               </form>
                               <form action={updateMatchResult}>
                                 <input name="id" type="hidden" value={match.id} />
-                                <button className="rounded-full border border-white/15 px-3 py-2 text-sm font-bold text-slate-200" name="score" type="submit" value="pending">
+                                <SubmitButton className="rounded-full border border-white/15 px-3 py-2 text-sm font-bold text-slate-200" name="score" value="pending">
                                   Pendiente
-                                </button>
+                                </SubmitButton>
                               </form>
                               <form action={deleteMatch}>
                                 <input name="id" type="hidden" value={match.id} />
