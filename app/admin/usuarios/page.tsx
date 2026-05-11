@@ -2,7 +2,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { requireAdmin } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { createAdminUser, deleteAdminUser } from "../actions";
+import { createAdminUser, deleteAdminUser, updateOwnPassword } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,44 @@ export default async function UsuariosAdminPage() {
         <input className="rounded-lg bg-court-900 px-3 py-2" minLength={8} name="password" placeholder="Contraseña (mínimo 8)" required type="password" />
         <button className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950" type="submit">Crear</button>
       </form>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-5">
+        <h2 className="text-xl font-black text-ball-500">Cambiar mi contraseña</h2>
+        <p className="mt-1 text-xs text-text-muted">
+          Al cambiarla se cerrará la sesión en otros dispositivos (la actual se mantiene).
+        </p>
+        <form action={updateOwnPassword} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+          <input
+            autoComplete="current-password"
+            className="rounded-lg bg-court-900 px-3 py-2"
+            name="currentPassword"
+            placeholder="Contraseña actual"
+            required
+            type="password"
+          />
+          <input
+            autoComplete="new-password"
+            className="rounded-lg bg-court-900 px-3 py-2"
+            minLength={8}
+            name="newPassword"
+            placeholder="Nueva (mínimo 8)"
+            required
+            type="password"
+          />
+          <input
+            autoComplete="new-password"
+            className="rounded-lg bg-court-900 px-3 py-2"
+            minLength={8}
+            name="confirmPassword"
+            placeholder="Repite la nueva"
+            required
+            type="password"
+          />
+          <button className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950" type="submit">
+            Cambiar
+          </button>
+        </form>
+      </section>
 
       <div className="mt-6 space-y-2">
         {users.map((user) => (

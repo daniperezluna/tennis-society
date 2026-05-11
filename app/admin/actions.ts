@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { buildCupBracket, nextPowerOfTwo } from "@/lib/cup";
@@ -296,5 +297,30 @@ export async function deleteAdminUser(formData: FormData) {
   if (count <= 1) throw new Error("Debe quedar al menos un admin");
 
   await prisma.adminUser.delete({ where: { id } });
+  revalidatePath("/admin/usuarios");
+}
+
+export async function updateOwnPassword(formData: FormData) {
+  const current = await requireAdmin();
+  const currentPassword = String(formData.get("currentPassword") || "");
+  const newPassword = String(formData.get("newPassword") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+
+  if (newPassword.length < 8) throw new Error("La nueva contraseña debe tener al menos 8 caracteres");
+  if (newPassword !== confirmPassword) throw new Error("Las contraseñas no coinciden");
+
+  const user = await prisma.adminUser.findUniqueOrThrow({ where: { id: current.id } });
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) throw new Error("La contraseña actual es incorrecta");
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await prisma.adminUser.update({ where: { id: current.id }, data: { passwordHash } });
+
+  // Invalida sesiones de otros dispositivos pero mantén la actual.
+  const store = await cookies();
+  const currentToken = store.get("tennis_admin")?.value;
+  await prisma.adminSession.deleteMany({
+    where: { userId: current.id, ...(currentToken ? { NOT: { id: currentToken } } : {}) },
+  });
   revalidatePath("/admin/usuarios");
 }
