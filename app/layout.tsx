@@ -19,9 +19,25 @@ const outfit = Outfit({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Apipana Tennis Society",
   description: "Liga de tenis Apipana con clasificación, copa, resultados y noticias.",
+  openGraph: {
+    title: "Apipana Tennis Society",
+    description: "Liga, copa y crónicas. Todo en un sitio.",
+    type: "website",
+    locale: "es_ES",
+    siteName: "Apipana Tennis Society",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Apipana Tennis Society",
+    description: "Liga, copa y crónicas. Todo en un sitio.",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
