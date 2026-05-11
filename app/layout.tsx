@@ -33,11 +33,21 @@ export const metadata: Metadata = {
     locale: "es_ES",
     siteName: "Apipana Tennis Society",
     url: siteUrl,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+        alt: "Apipana Tennis Society",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Apipana Tennis Society",
     description: "Liga, copa y crónicas. Todo en un sitio.",
+    images: ["/opengraph-image"],
   },
   other: {
     "og:logo": `${siteUrl}/brand/apipana-logo-white.png`,
