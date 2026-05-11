@@ -80,6 +80,12 @@ h1, h2, h3 {
   color: #f8fafc;
 }
 
+/* Tailwind v4 quitó cursor:pointer por defecto en botones */
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
 @layer utilities {
   .court-divider {
     height: 1px;
