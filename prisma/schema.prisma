@@ -49,8 +49,8 @@ model Match {
   status     MatchStatus @default(pending)
   createdAt  DateTime    @default(now())
 
-  homeTeam Team @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeam Team @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeTeam Team @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam Team @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
 }
 
 model CupMatch {
@@ -68,8 +68,8 @@ model CupMatch {
   nextMatchId Int?
   nextSlot    String?
 
-  homeTeam    Team?      @relation("HomeCupTeam", fields: [homeTeamId], references: [id])
-  awayTeam    Team?      @relation("AwayCupTeam", fields: [awayTeamId], references: [id])
+  homeTeam    Team?      @relation("HomeCupTeam", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  awayTeam    Team?      @relation("AwayCupTeam", fields: [awayTeamId], references: [id], onDelete: SetNull)
   nextMatch   CupMatch?  @relation("CupAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
   prevMatches CupMatch[] @relation("CupAdvance")
 }
