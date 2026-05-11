@@ -7,10 +7,12 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.68",
