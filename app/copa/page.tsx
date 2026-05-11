@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { CupMatch, Team } from "@/app/generated/prisma";
+import type { CupMatchModel, TeamModel } from "@/app/generated/prisma/models";
 import prisma from "@/lib/prisma";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CUP_ROUND_LABELS, CUP_ROUND_ORDER, CUP_ROUNDS } from "@/lib/constants";
@@ -7,7 +7,7 @@ import { realR0Indices } from "@/lib/cup";
 
 export const dynamic = "force-dynamic";
 
-type CupMatchFull = CupMatch & { homeTeam: Team | null; awayTeam: Team | null };
+type CupMatchFull = CupMatchModel & { homeTeam: TeamModel | null; awayTeam: TeamModel | null };
 
 function Logo({ src, name }: { src?: string | null; name: string }) {
   return (

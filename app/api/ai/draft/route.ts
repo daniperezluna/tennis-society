@@ -23,7 +23,7 @@ La noticia debe tener:
 2. El cuerpo de la noticia (3-4 párrafos)
 
 Devuelve SOLO el texto, sin encabezados ni etiquetas. Primero el resumen, luego el cuerpo separados por una línea en blanco.`,
-    maxTokens: 600,
+    maxOutputTokens: 600,
   });
 
   return result.toTextStreamResponse();

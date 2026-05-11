@@ -15,7 +15,7 @@ const generatePulse = unstable_cache(
       system: "Eres el cronista de la Apipana Tennis Society, una liga de Virtua Tennis del arcade de la oficina entre compañeros de curro. Lenguaje llano, callejero, irónico, pique sano. Nada de épica deportiva, nada de adornos. Como pinchar al colega de al lado.",
       prompt: `Contexto: ${context}\n\nLa liga tiene tres divisiones llamadas Hierba, Arcilla y Dura (son los nombres de las divisiones, NO son jugadores). Los jugadores son los nombres después de "manda" en el contexto.\n\nGenera un titular para la home en formato "Frase uno. Frase dos." (dos frases cortas de 3-6 palabras cada una). REGLAS:\n- Cada frase tiene que tener sentido completo, sin inventar expresiones.\n- Tono pique de oficina, irónico, callejero. Como hablan los colegas en el grupo de WhatsApp.\n- NO fuerces rimas ni ritmo si eso te lleva a frases sin sentido.\n- Si mencionas un nombre, que sea el de un JUGADOR, nunca "Hierba", "Arcilla" o "Dura".\n\nEjemplos de estilo válido: "Vuestra pista. Vuestro pique." / "Biker manda. El resto a remar." / "Otro lunes. Otro pique."\n\nDevuelve SOLO el titular, sin comillas, sin nada más.`,
       temperature: 1,
-      maxTokens: 30,
+      maxOutputTokens: 30,
     });
     return text.trim().replace(/^["']|["']$/g, "");
   },
