@@ -9,6 +9,8 @@ type ScheduleMatch = {
   id: number;
   division: number;
   matchday: number | null;
+  homeTeamId: number;
+  awayTeamId: number;
   homeSets: number | null;
   awaySets: number | null;
   status: MatchStatus;
@@ -16,9 +18,12 @@ type ScheduleMatch = {
   awayTeam: { name: string; logoUrl: string | null };
 };
 
+type DivisionTeam = { id: number; name: string; logoUrl: string | null };
+
 type LeagueScheduleProps = {
   matches: ScheduleMatch[];
   teamCounts: Record<number, number>;
+  teamsByDivision: Record<number, DivisionTeam[]>;
 };
 
 function regularRounds(teamCount: number) {
@@ -76,7 +81,15 @@ function MatchRow({ match }: { match: ScheduleMatch }) {
   );
 }
 
-function MatchdayCard({ title, rows }: { title: string; rows: ScheduleMatch[] }) {
+function MatchdayCard({
+  title,
+  rows,
+  byeTeam,
+}: {
+  title: string;
+  rows: ScheduleMatch[];
+  byeTeam?: DivisionTeam | null;
+}) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
       <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-amber-300">{title}</h4>
@@ -87,6 +100,13 @@ function MatchdayCard({ title, rows }: { title: string; rows: ScheduleMatch[] })
           <p className="py-3 text-center text-sm text-slate-600">Sin partidos.</p>
         )}
       </div>
+      {byeTeam && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/8 bg-black/20 px-3 py-2">
+          <TeamLogo name={byeTeam.name} src={byeTeam.logoUrl} />
+          <span className="text-sm font-semibold text-slate-200">{byeTeam.name}</span>
+          <span className="ml-auto text-xs font-bold uppercase tracking-wider text-slate-500">Descansa</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -124,7 +144,7 @@ function AccordionItem({ title, subtitle, defaultOpen = false, children }: Accor
   );
 }
 
-export function LeagueSchedule({ matches, teamCounts }: LeagueScheduleProps) {
+export function LeagueSchedule({ matches, teamCounts, teamsByDivision }: LeagueScheduleProps) {
   const [division, setDivision] = useState(1);
   const divisionMatches = useMemo(
     () => matches.filter((match) => match.division === division),
@@ -132,6 +152,27 @@ export function LeagueSchedule({ matches, teamCounts }: LeagueScheduleProps) {
   );
   const rounds = regularRounds(teamCounts[division] ?? 0);
   const firstLegDays = Array.from({ length: rounds }, (_, i) => i + 1);
+  const teams = teamsByDivision[division] ?? [];
+  const isOddDivision = teams.length % 2 === 1;
+
+  const byeByMatchday = useMemo(() => {
+    if (!isOddDivision) return new Map<number, DivisionTeam>();
+    const map = new Map<number, DivisionTeam>();
+    const allDays = new Set<number>();
+    for (const m of divisionMatches) if (m.matchday != null) allDays.add(m.matchday);
+    for (const day of allDays) {
+      const playing = new Set<number>();
+      for (const m of divisionMatches) {
+        if (m.matchday === day) {
+          playing.add(m.homeTeamId);
+          playing.add(m.awayTeamId);
+        }
+      }
+      const resting = teams.find((t) => !playing.has(t.id));
+      if (resting) map.set(day, resting);
+    }
+    return map;
+  }, [isOddDivision, divisionMatches, teams]);
 
   return (
     <section className="glass mt-10 rounded-3xl p-6">
@@ -173,8 +214,8 @@ export function LeagueSchedule({ matches, teamCounts }: LeagueScheduleProps) {
               subtitle="ida y vuelta"
               title={`Jornada ${day} / ${returnDay}`}
             >
-              <MatchdayCard rows={firstLeg} title={`Ida · Jornada ${day}`} />
-              <MatchdayCard rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} rows={firstLeg} title={`Ida · Jornada ${day}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
             </AccordionItem>
           );
         })}

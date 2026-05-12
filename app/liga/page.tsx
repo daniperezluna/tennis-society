@@ -102,7 +102,15 @@ export default async function LigaPage() {
         ))}
       </section>
 
-      <LeagueSchedule matches={matches} teamCounts={teamCounts} />
+      <LeagueSchedule
+        matches={matches}
+        teamCounts={teamCounts}
+        teamsByDivision={{
+          1: division1.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+          2: division2.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+          3: division3.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+        }}
+      />
     </main>
   );
 }
