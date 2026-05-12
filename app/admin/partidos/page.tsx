@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
-import { deleteMatch, generateLeagues, resetLeagues, updateMatchResult } from "../actions";
+import { generateLeagues, resetLeagues, updateMatchResult } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -193,10 +193,6 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
                                 <SubmitButton className="rounded-full border border-white/15 px-3 py-2 text-sm font-bold text-slate-200" name="score" value="pending">
                                   Pendiente
                                 </SubmitButton>
-                              </form>
-                              <form action={deleteMatch}>
-                                <input name="id" type="hidden" value={match.id} />
-                                <ConfirmButton className="rounded-full border border-red-300/40 px-3 py-2 text-sm text-red-200" message="¿Eliminar este partido?">Eliminar</ConfirmButton>
                               </form>
                             </div>
                           </div>
