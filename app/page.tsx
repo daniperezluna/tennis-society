@@ -3,23 +3,76 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getStandings } from "@/lib/standings";
-import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
+import { CUP_ROUND_LABELS, DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import { getAI } from "@/lib/ai-provider";
 
-const generatePulse = unstable_cache(
+const COMMON_RULES = `Eres el cronista de la Apipana Tennis Society, una liga de Virtua Tennis (arcade) entre compañeros de oficina. Estilo: irónico, callejero, pique sano. Como pinchar al colega en el grupo de WhatsApp. Sin épica falsa, sin lirismo, sin adornos vacíos.
+
+DOS COMPETICIONES DISTINTAS:
+- LIGA: round-robin con tres divisiones llamadas Hierba, Arcilla y Dura. Todos juegan contra todos ida y vuelta.
+- COPA: eliminatoria directa con rondas (Octavos, Cuartos, Semifinales, Final). Si pierdes, te vas.
+- Cada partido del contexto viene marcado con [LIGA división X] o [COPA ronda Y].
+
+REGLAS DE CONTENIDO:
+- Hierba, Arcilla, Dura, Octavos, Cuartos, Semifinales, Final son NOMBRES DE DIVISIONES O RONDAS, no son jugadores.
+- Los jugadores son los nombres concretos del contexto: Biker, Tomate, Icarus, Flo, Speedy, etc.
+- Cada partido es individual, al mejor de 3 sets.
+- Foco en lo MÁS RECIENTE: el partido #1 del contexto es el último jugado.
+- No inventes resultados, nombres ni rondas.`;
+
+const generateSlogan = unstable_cache(
   async (context: string): Promise<string> => {
     const ai = await getAI();
     if (!ai) throw new Error("AI not configured");
     const { text } = await ai.generateText({
       model: ai.google("gemini-2.5-flash-lite"),
-      system: "Eres el cronista de la Apipana Tennis Society, una liga de Virtua Tennis del arcade de la oficina entre compañeros de curro. Lenguaje llano, callejero, irónico, pique sano. Nada de épica deportiva, nada de adornos. Como pinchar al colega de al lado.",
-      prompt: `Contexto: ${context}\n\nLa liga tiene tres divisiones llamadas Hierba, Arcilla y Dura (son los nombres de las divisiones, NO son jugadores). Los jugadores son los nombres después de "manda" en el contexto.\n\nGenera un titular para la home en formato "Frase uno. Frase dos." (dos frases cortas de 3-6 palabras cada una). REGLAS:\n- Cada frase tiene que tener sentido completo, sin inventar expresiones.\n- Tono pique de oficina, irónico, callejero. Como hablan los colegas en el grupo de WhatsApp.\n- NO fuerces rimas ni ritmo si eso te lleva a frases sin sentido.\n- Si mencionas un nombre, que sea el de un JUGADOR, nunca "Hierba", "Arcilla" o "Dura".\n\nEjemplos de estilo válido: "Vuestra pista. Vuestro pique." / "Biker manda. El resto a remar." / "Otro lunes. Otro pique."\n\nDevuelve SOLO el titular, sin comillas, sin nada más.`,
+      system: `${COMMON_RULES}
+
+TAREA: generar un SLOGAN corto para el H1 grande de la home. Formato estricto:
+- Dos frases muy cortas, de 2-4 palabras cada una, separadas por un punto.
+- Total máximo: 8 palabras.
+- Sin comillas envolviendo el texto. Sin emojis.
+
+EJEMPLOS DE TONO (no copies literal):
+- "Vuestra pista. Vuestro pique."
+- "Biker manda. El resto rema."
+- "Flo despierta. Hierba tiembla."
+- "Otra de Speedy. Como siempre."`,
+      prompt: `Contexto actual:\n\n${context}\n\nDevuelve SOLO el slogan, sin nada más.`,
       temperature: 1,
-      maxOutputTokens: 30,
+      maxOutputTokens: 40,
     });
     return text.trim().replace(/^["']|["']$/g, "");
   },
-  ["ai-pulse"],
+  ["ai-slogan"],
+  { revalidate: 60 * 60 * 24 },
+);
+
+const generateHeadline = unstable_cache(
+  async (context: string): Promise<string> => {
+    const ai = await getAI();
+    if (!ai) throw new Error("AI not configured");
+    const { text } = await ai.generateText({
+      model: ai.google("gemini-2.5-flash-lite"),
+      system: `${COMMON_RULES}
+
+TAREA: generar un TITULAR estilo prensa deportiva amateur, para el subtítulo de la home. Formato estricto:
+- Una sola frase de 10-18 palabras, con punto al final.
+- Cuenta lo más jugoso del último resultado (la derrota en copa, la victoria sorprendente, una racha, etc.).
+- Sin emojis, sin hashtags, sin comillas envolviendo el texto.
+
+EJEMPLOS DE TONO (no copies literal):
+- "Biker pasa por encima de Icarus con un 2-0 y sigue como un cohete en Hierba."
+- "Tomate le saca un set a Clockwork pero acaba cayendo en la prórroga."
+- "Flo elimina a Real Moon en cuartos tras un tie-break para enmarcar."
+- "Speedy se va de copa por la puerta de atrás: sorpresón en cuartos."`,
+      prompt: `Contexto actual:\n\n${context}\n\nDevuelve SOLO el titular, sin nada más.`,
+      temperature: 1,
+      maxOutputTokens: 80,
+    });
+    return text.trim().replace(/^["']|["']$/g, "");
+  },
+  ["ai-headline"],
   { revalidate: 60 * 60 * 24 },
 );
 
@@ -70,7 +123,7 @@ function IconClock() {
 }
 
 export default async function Home() {
-  const [division1, division2, division3, news, teamsCount, cupCount, playedMatches, pendingMatches] = await Promise.all([
+  const [division1, division2, division3, news, teamsCount, cupCount, playedMatches, pendingMatches, recentLeague, recentCup] = await Promise.all([
     getStandings(1),
     getStandings(2),
     getStandings(3),
@@ -79,23 +132,98 @@ export default async function Home() {
     prisma.team.count({ where: { cupEnabled: true } }),
     prisma.match.count({ where: { status: "played" } }),
     prisma.match.count({ where: { status: "pending" } }),
+    prisma.match.findMany({
+      where: { status: { in: ["played", "walkover"] }, playedAt: { not: null } },
+      orderBy: { playedAt: "desc" },
+      take: 5,
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+    }),
+    prisma.cupMatch.findMany({
+      where: { status: { in: ["played", "walkover"] }, playedAt: { not: null } },
+      orderBy: { playedAt: "desc" },
+      take: 5,
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+    }),
   ]);
   const leaders = [division1[0], division2[0], division3[0]].filter(Boolean);
 
-  let pulseMessage: string | null = null;
+  let sloganMessage: string | null = null;
+  let headlineMessage: string | null = null;
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    const context = [
-      leaders.length
-        ? `Jugadores que lideran cada división: ${leaders.map((r, i) => `en la división ${DIVISION_NAMES[i + 1]} manda ${r.team.name} con ${r.points} pts`).join("; ")}.`
-        : "La liga aún no tiene resultados.",
-      `Partidos jugados: ${playedMatches}. Pendientes: ${pendingMatches}.`,
-    ].join(" ");
+    type RecentEvent = {
+      kind: "liga" | "copa";
+      label: string;
+      winner: string;
+      loser: string;
+      score: string;
+      playedAt: Date;
+    };
 
-    try {
-      pulseMessage = await generatePulse(context);
-    } catch (err) {
-      console.error("[ai pulse]", err);
-    }
+    const formatScore = (homeSets: number | null, awaySets: number | null, status: string) =>
+      status === "walkover"
+        ? "walkover"
+        : `${Math.max(homeSets ?? 0, awaySets ?? 0)}-${Math.min(homeSets ?? 0, awaySets ?? 0)}`;
+
+    const events: RecentEvent[] = [
+      ...recentLeague.map((m): RecentEvent => {
+        const homeWon = (m.homeSets ?? 0) > (m.awaySets ?? 0);
+        return {
+          kind: "liga",
+          label: `LIGA división ${DIVISION_NAMES[m.division]}`,
+          winner: homeWon ? m.homeTeam.name : m.awayTeam.name,
+          loser: homeWon ? m.awayTeam.name : m.homeTeam.name,
+          score: formatScore(m.homeSets, m.awaySets, m.status),
+          playedAt: m.playedAt!,
+        };
+      }),
+      ...recentCup.map((m): RecentEvent => {
+        const homeWon = (m.homeSets ?? 0) > (m.awaySets ?? 0);
+        const winnerName = homeWon ? m.homeTeam?.name : m.awayTeam?.name;
+        const loserName = homeWon ? m.awayTeam?.name : m.homeTeam?.name;
+        return {
+          kind: "copa",
+          label: `COPA ${CUP_ROUND_LABELS[m.round]}`,
+          winner: winnerName ?? "?",
+          loser: loserName ?? "?",
+          score: formatScore(m.homeSets, m.awaySets, m.status),
+          playedAt: m.playedAt!,
+        };
+      }),
+    ]
+      .filter((e) => e.winner !== "?" && e.loser !== "?")
+      .sort((a, b) => b.playedAt.getTime() - a.playedAt.getTime())
+      .slice(0, 5);
+
+    const recentLines = events.map(
+      (e) =>
+        `[${e.label}] ${e.winner} ganó a ${e.loser} (${e.score})${e.kind === "copa" ? " · eliminatoria directa" : ""}`,
+    );
+
+    const contextLines = [
+      recentLines.length
+        ? `ÚLTIMOS RESULTADOS (de más reciente a más antiguo, mezcla de liga y copa):\n${recentLines.map((l, i) => `${i + 1}. ${l}`).join("\n")}`
+        : "Todavía no se ha jugado ningún partido.",
+      leaders.length
+        ? `LÍDERES DE LIGA: ${leaders.map((r, i) => `División ${DIVISION_NAMES[i + 1]}: ${r.team.name} (${r.points} pts)`).join(" · ")}`
+        : "",
+      `Total: ${playedMatches} partidos de liga jugados, ${pendingMatches} pendientes.`,
+    ].filter(Boolean);
+
+    const context = contextLines.join("\n\n");
+    const [slogan, headline] = await Promise.allSettled([
+      generateSlogan(context),
+      generateHeadline(context),
+    ]);
+    if (slogan.status === "fulfilled") sloganMessage = slogan.value;
+    else console.error("[ai slogan]", slogan.reason);
+    if (headline.status === "fulfilled") headlineMessage = headline.value;
+    else console.error("[ai headline]", headline.reason);
   }
 
   return (
@@ -112,7 +240,7 @@ export default async function Home() {
             </p>
             <div className="court-line mt-5 mb-5 max-w-xs" />
             <h1 className="max-w-4xl text-5xl font-black sm:text-7xl lg:text-8xl">
-              {(pulseMessage ?? "Vuestra pista. Vuestro pique.")
+              {(sloganMessage ?? "Vuestra pista. Vuestro pique.")
                 .split(/(?<=\.)\s+/)
                 .map((line, i, arr) => (
                   <span key={i}>
@@ -121,9 +249,16 @@ export default async function Home() {
                   </span>
                 ))}
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-slate-300">
-              Sigue la liga, el cuadro de copa y las crónicas de la Apipana Tennis Society. Todo en un sitio.
-            </p>
+            {headlineMessage ? (
+              <p className="mt-6 flex max-w-xl items-start gap-2 text-lg font-semibold leading-snug text-slate-200">
+                <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-apipana-gold" aria-hidden="true" />
+                {headlineMessage}
+              </p>
+            ) : (
+              <p className="mt-6 max-w-xl text-lg text-slate-300">
+                Sigue la liga, el cuadro de copa y las crónicas de la Apipana Tennis Society. Todo en un sitio.
+              </p>
+            )}
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 className="rounded-full bg-apipana-gold px-6 py-3 text-sm font-black text-[#110c1d] shadow-lg shadow-apipana-gold/20 transition hover:brightness-110"

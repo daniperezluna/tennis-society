@@ -53,13 +53,14 @@ export async function updateMatchResult(formData: FormData) {
 
   const match = await prisma.match.findUniqueOrThrow({ where: { id } });
   const data = (() => {
-    if (score === "2-0") return { homeSets: 2, awaySets: 0, status: "played" as const };
-    if (score === "2-1") return { homeSets: 2, awaySets: 1, status: "played" as const };
-    if (score === "1-2") return { homeSets: 1, awaySets: 2, status: "played" as const };
-    if (score === "0-2") return { homeSets: 0, awaySets: 2, status: "played" as const };
-    if (score === "wo-home") return { homeSets: 1, awaySets: 0, status: "walkover" as const };
-    if (score === "wo-away") return { homeSets: 0, awaySets: 1, status: "walkover" as const };
-    return { homeSets: null, awaySets: null, status: "pending" as const };
+    const now = new Date();
+    if (score === "2-0") return { homeSets: 2, awaySets: 0, status: "played" as const, playedAt: now };
+    if (score === "2-1") return { homeSets: 2, awaySets: 1, status: "played" as const, playedAt: now };
+    if (score === "1-2") return { homeSets: 1, awaySets: 2, status: "played" as const, playedAt: now };
+    if (score === "0-2") return { homeSets: 0, awaySets: 2, status: "played" as const, playedAt: now };
+    if (score === "wo-home") return { homeSets: 1, awaySets: 0, status: "walkover" as const, playedAt: now };
+    if (score === "wo-away") return { homeSets: 0, awaySets: 1, status: "walkover" as const, playedAt: now };
+    return { homeSets: null, awaySets: null, status: "pending" as const, playedAt: null };
   })();
 
   await prisma.match.update({ where: { id: match.id }, data });
@@ -145,13 +146,14 @@ export async function updateCupMatchResult(formData: FormData) {
   const previous = await prisma.cupMatch.findUniqueOrThrow({ where: { id } });
 
   const data = (() => {
-    if (score === "2-0") return { homeSets: 2, awaySets: 0, status: "played" as const };
-    if (score === "2-1") return { homeSets: 2, awaySets: 1, status: "played" as const };
-    if (score === "1-2") return { homeSets: 1, awaySets: 2, status: "played" as const };
-    if (score === "0-2") return { homeSets: 0, awaySets: 2, status: "played" as const };
-    if (score === "wo-home") return { homeSets: 1, awaySets: 0, status: "walkover" as const };
-    if (score === "wo-away") return { homeSets: 0, awaySets: 1, status: "walkover" as const };
-    return { homeSets: null, awaySets: null, status: "pending" as const };
+    const now = new Date();
+    if (score === "2-0") return { homeSets: 2, awaySets: 0, status: "played" as const, playedAt: now };
+    if (score === "2-1") return { homeSets: 2, awaySets: 1, status: "played" as const, playedAt: now };
+    if (score === "1-2") return { homeSets: 1, awaySets: 2, status: "played" as const, playedAt: now };
+    if (score === "0-2") return { homeSets: 0, awaySets: 2, status: "played" as const, playedAt: now };
+    if (score === "wo-home") return { homeSets: 1, awaySets: 0, status: "walkover" as const, playedAt: now };
+    if (score === "wo-away") return { homeSets: 0, awaySets: 1, status: "walkover" as const, playedAt: now };
+    return { homeSets: null, awaySets: null, status: "pending" as const, playedAt: null };
   })();
 
   await clearCupAdvance(previous);
