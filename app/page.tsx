@@ -28,16 +28,20 @@ const generateSlogan = unstable_cache(
       model: ai.google("gemini-2.5-flash-lite"),
       system: `${COMMON_RULES}
 
-TAREA: generar un SLOGAN corto para el H1 grande de la home. Formato estricto:
-- Dos frases muy cortas, de 2-4 palabras cada una, separadas por un punto.
-- Total máximo: 8 palabras.
+TAREA: generar el H1 grande de la home. Es el GANCHO visual, lo primero que se lee, así que tiene que llamar la atención y referirse a lo MÁS RECIENTE (resultado #1 del contexto). NUNCA generes algo genérico, siempre sobre el último evento.
+
+FORMATO ESTRICTO:
+- Dos frases muy cortas, de 2-5 palabras cada una, separadas por un punto.
+- Total máximo: 9 palabras.
+- Una frase nombra protagonista o acción concreta, la otra remata con guasa.
 - Sin comillas envolviendo el texto. Sin emojis.
 
-EJEMPLOS DE TONO (no copies literal):
-- "Vuestra pista. Vuestro pique."
-- "Biker manda. El resto rema."
-- "Flo despierta. Hierba tiembla."
-- "Otra de Speedy. Como siempre."`,
+EJEMPLOS DE TONO Y ESTRUCTURA (NO copies literal, son solo guías de estilo):
+- "Biker arrasa. Tomate al suelo."
+- "Flo despierta. Real Moon llora."
+- "Speedy fuera. Sorpresón en cuartos."
+- "Tomate da guerra. Pero cae."
+- "Otra de Biker. Como siempre."`,
       prompt: `Contexto actual:\n\n${context}\n\nDevuelve SOLO el slogan, sin nada más.`,
       temperature: 1,
       maxOutputTokens: 40,
