@@ -6,7 +6,7 @@ import { teamSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
-    const teams = await prisma.team.findMany({ orderBy: [{ division: "asc" }, { name: "asc" }] });
+    const teams = await prisma.team.findMany({ orderBy: [{ division: "asc" }, { name: "asc" }], omit: { email: true } });
     return Response.json(teams);
   } catch (error) {
     return handleApiError(error);
