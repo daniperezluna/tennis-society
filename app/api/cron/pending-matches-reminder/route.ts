@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import * as Brevo from "@getbrevo/brevo";
+import { BrevoClient } from "@getbrevo/brevo";
 import prisma from "@/lib/prisma";
 
-const brevo = new Brevo.TransactionalEmailsApi();
-brevo.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY!);
+const brevo = new BrevoClient({ apiKey: process.env.BREVO_API_KEY! });
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -18,7 +17,7 @@ export async function GET(request: Request) {
 
   await Promise.all(
     teams.map((team) =>
-      brevo.sendTransacEmail({
+      brevo.transactionalEmails.sendTransacEmail({
         sender: { name: "Tennis Society", email: process.env.BREVO_SENDER_EMAIL! },
         to: [{ email: team.email!, name: team.name }],
         subject: "Pending matches reminder",
