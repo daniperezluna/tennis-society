@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/pending-matches-reminder",
-      "schedule": "* * * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }
