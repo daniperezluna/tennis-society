@@ -14,17 +14,35 @@ function Logo({ src, name }: { src?: string | null; name: string }) {
   );
 }
 
-const RANK_CLASS: Record<number, string> = {
+const TOP_RANK_CLASS: Record<number, string> = {
   0: "rank-gold",
   1: "rank-silver",
   2: "rank-bronze",
 };
 
-const RANK_COLOR: Record<number, string> = {
+const TOP_RANK_COLOR: Record<number, string> = {
   0: "text-apipana-gold font-black",
   1: "text-slate-300 font-black",
   2: "text-amber-600 font-black",
 };
+
+function getRankClass(pos: number, total: number): string {
+  if (TOP_RANK_CLASS[pos]) return TOP_RANK_CLASS[pos];
+  const fromEnd = total - 1 - pos;
+  if (fromEnd === 0 && total > 3) return "rank-danger";
+  if (fromEnd === 1 && total > 4) return "rank-warning";
+  if (fromEnd === 2 && total > 5) return "rank-caution";
+  return "";
+}
+
+function getRankColor(pos: number, total: number): string {
+  if (TOP_RANK_COLOR[pos]) return TOP_RANK_COLOR[pos];
+  const fromEnd = total - 1 - pos;
+  if (fromEnd === 0 && total > 3) return "text-red-500 font-black";
+  if (fromEnd === 1 && total > 4) return "text-orange-500 font-black";
+  if (fromEnd === 2 && total > 5) return "text-yellow-500 font-black";
+  return "text-slate-500 font-medium";
+}
 
 export default async function LigaPage() {
   const [division1, division2, division3, matches] = await Promise.all([
@@ -74,9 +92,9 @@ export default async function LigaPage() {
                 </thead>
                 <tbody>
                   {standings.map((row, pos) => (
-                    <tr className={RANK_CLASS[pos] ?? ""} key={row.team.id}>
+                    <tr className={getRankClass(pos, standings.length)} key={row.team.id}>
                       <td className="text-center">
-                        <span className={`text-xs ${RANK_COLOR[pos] ?? "text-slate-500 font-medium"}`}>
+                        <span className={`text-xs ${getRankColor(pos, standings.length)}`}>
                           {pos + 1}
                         </span>
                       </td>
