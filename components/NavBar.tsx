@@ -8,6 +8,7 @@ const nav = [
   { href: "/", label: "Inicio" },
   { href: "/liga", label: "Liga" },
   { href: "/copa", label: "Copa" },
+  { href: "/estadisticas", label: "Stats" },
   { href: "/noticias", label: "Noticias" },
 ];
 
