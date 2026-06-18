@@ -172,9 +172,10 @@ function formatDate(d: Date | null) {
 export default async function PlayerPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const teamId = parseInt(params.id);
+  const { id } = await params;
+  const teamId = parseInt(id);
   if (isNaN(teamId)) notFound();
 
   const allStats = await getAllPlayersStats();

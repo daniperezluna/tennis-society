@@ -142,12 +142,12 @@ function H2HSection({ historyA, historyB, statsA, statsB }: {
 export default async function ComparadorPage({
   searchParams,
 }: {
-  searchParams: { a?: string; b?: string };
+  searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  const allStats = await getAllPlayersStats();
+  const [allStats, sp] = await Promise.all([getAllPlayersStats(), searchParams]);
 
-  const idA = parseInt(searchParams.a ?? "") || null;
-  const idB = parseInt(searchParams.b ?? "") || null;
+  const idA = parseInt(sp.a ?? "") || null;
+  const idB = parseInt(sp.b ?? "") || null;
 
   const statsA = idA ? allStats.find((s) => s.team.id === idA) ?? null : null;
   const statsB = idB ? allStats.find((s) => s.team.id === idB) ?? null : null;
