@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getAllPlayersStats } from "@/lib/stats";
+import { getAllSeasons, getActiveSeason } from "@/lib/season";
+import { SeasonSelector } from "@/components/SeasonSelector";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import { ComparadorSelectors } from "@/components/ComparadorSelectors";
 import type { PlayerStats, MatchEntry } from "@/lib/stats";
@@ -142,9 +144,19 @@ function H2HSection({ historyA, historyB, statsA, statsB }: {
 export default async function ComparadorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ a?: string; b?: string }>;
+  searchParams: Promise<{ a?: string; b?: string; season?: string }>;
 }) {
-  const [allStats, sp] = await Promise.all([getAllPlayersStats(), searchParams]);
+  const [sp, seasons, activeSeason] = await Promise.all([
+    searchParams,
+    getAllSeasons(),
+    getActiveSeason().catch(() => null),
+  ]);
+
+  const seasonParam = sp.season;
+  const seasonId = seasonParam === "all" ? 0 : seasonParam ? parseInt(seasonParam) || undefined : undefined;
+  const currentSelector = seasonParam === "all" ? "all" : seasonParam ?? "active";
+
+  const allStats = await getAllPlayersStats(seasonId);
 
   const idA = parseInt(sp.a ?? "") || null;
   const idB = parseInt(sp.b ?? "") || null;
@@ -163,12 +175,15 @@ export default async function ComparadorPage({
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10 flex flex-col gap-8">
       <div>
-        <Link
-          className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-apipana-gold transition-colors"
-          href="/estadisticas"
-        >
-          ← Estadísticas
-        </Link>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <Link
+            className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-apipana-gold transition-colors"
+            href="/estadisticas"
+          >
+            ← Estadísticas
+          </Link>
+          <SeasonSelector activeSeason={activeSeason} current={currentSelector} seasons={seasons} />
+        </div>
         <h1 className="mt-4 text-4xl font-black gradient-text">Comparador</h1>
         <p className="mt-1 text-slate-400">Compara las estadísticas de dos jugadores cara a cara.</p>
       </div>

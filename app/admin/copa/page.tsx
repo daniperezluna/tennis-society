@@ -13,18 +13,20 @@ import {
   updateCupMatchResult,
   updateCupMatchTeams,
 } from "../actions";
+import { getActiveSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
 export default async function CopaAdminPage() {
   await requireAdmin();
+  const activeSeason = await getActiveSeason().catch(() => null);
   const [teams, matches] = await Promise.all([
     prisma.team.findMany({ orderBy: [{ division: "asc" }, { name: "asc" }] }),
     prisma.cupMatch.findMany({
       include: { homeTeam: true, awayTeam: true },
+      where: activeSeason ? { seasonId: activeSeason.id } : {},
       orderBy: [{ round: "asc" }, { order: "asc" }],
     }),
-    prisma.team.findMany({ where: { cupEnabled: true } }),
   ]);
   const activeRounds = CUP_ROUNDS.filter((round) =>
     matches.some((match) => match.round === round),

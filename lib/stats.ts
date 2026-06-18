@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getActiveSeason } from "@/lib/season";
 
 type Team = NonNullable<Awaited<ReturnType<typeof prisma.team.findFirst>>>;
 
@@ -90,11 +91,16 @@ function computeStreaks(history: Pick<MatchEntry, "result">[]) {
   return { currentStreak, maxWinStreak, maxLoseStreak };
 }
 
-export async function getAllPlayersStats(): Promise<PlayerStats[]> {
+// seasonId = undefined → active season; seasonId = 0 → all seasons (career)
+export async function getAllPlayersStats(seasonId?: number): Promise<PlayerStats[]> {
+  const sid = seasonId === 0 ? undefined : (seasonId ?? (await getActiveSeason()).id);
+
   const [teams, matches] = await Promise.all([
-    prisma.team.findMany({ orderBy: { name: "asc" } }),
+    sid
+      ? prisma.seasonTeam.findMany({ where: { seasonId: sid }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => r.team))
+      : prisma.team.findMany({ orderBy: { name: "asc" } }),
     prisma.match.findMany({
-      where: { status: { in: ["played", "walkover"] } },
+      where: { status: { in: ["played", "walkover"] }, ...(sid ? { seasonId: sid } : {}) },
       include: {
         homeTeam: { select: { name: true } },
         awayTeam: { select: { name: true } },
@@ -211,11 +217,15 @@ export async function getAllPlayersStats(): Promise<PlayerStats[]> {
   );
 }
 
-export async function getDivisionHeatmap(division: number): Promise<HeatmapData> {
+export async function getDivisionHeatmap(division: number, seasonId?: number): Promise<HeatmapData> {
+  const sid = seasonId === 0 ? undefined : (seasonId ?? (await getActiveSeason()).id);
+
   const [teams, matches] = await Promise.all([
-    prisma.team.findMany({ where: { division }, orderBy: { name: "asc" } }),
+    sid
+      ? prisma.seasonTeam.findMany({ where: { seasonId: sid, division }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => r.team))
+      : prisma.team.findMany({ where: { division }, orderBy: { name: "asc" } }),
     prisma.match.findMany({
-      where: { division, status: { in: ["played", "walkover"] } },
+      where: { division, status: { in: ["played", "walkover"] }, ...(sid ? { seasonId: sid } : {}) },
     }),
   ]);
 
@@ -235,11 +245,15 @@ export async function getDivisionHeatmap(division: number): Promise<HeatmapData>
   return { teams, matrix };
 }
 
-export async function getMatchdayProgression(division: number): Promise<ProgressionSeries[]> {
+export async function getMatchdayProgression(division: number, seasonId?: number): Promise<ProgressionSeries[]> {
+  const sid = seasonId === 0 ? undefined : (seasonId ?? (await getActiveSeason()).id);
+
   const [teams, matches] = await Promise.all([
-    prisma.team.findMany({ where: { division }, orderBy: { name: "asc" } }),
+    sid
+      ? prisma.seasonTeam.findMany({ where: { seasonId: sid, division }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => r.team))
+      : prisma.team.findMany({ where: { division }, orderBy: { name: "asc" } }),
     prisma.match.findMany({
-      where: { division, status: { in: ["played", "walkover"] }, matchday: { not: null } },
+      where: { division, status: { in: ["played", "walkover"] }, matchday: { not: null }, ...(sid ? { seasonId: sid } : {}) },
       orderBy: [{ matchday: "asc" }, { id: "asc" }],
     }),
   ]);
@@ -274,9 +288,11 @@ export async function getMatchdayProgression(division: number): Promise<Progress
   });
 }
 
-export async function getContestedMatches(limit = 15): Promise<ContestedMatch[]> {
+export async function getContestedMatches(limit = 15, seasonId?: number): Promise<ContestedMatch[]> {
+  const sid = seasonId === 0 ? undefined : (seasonId ?? (await getActiveSeason()).id);
+
   const matches = await prisma.match.findMany({
-    where: { status: "played" },
+    where: { status: "played", ...(sid ? { seasonId: sid } : {}) },
     include: {
       homeTeam: { select: { name: true } },
       awayTeam: { select: { name: true } },

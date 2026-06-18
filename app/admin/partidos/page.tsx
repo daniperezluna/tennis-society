@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import { generateLeagues, resetLeagues, updateMatchResult } from "../actions";
+import { getActiveSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ type Search = { team?: string; status?: string };
 
 export default async function PartidosAdminPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requireAdmin();
-  const sp = await searchParams;
+  const [sp, activeSeason] = await Promise.all([searchParams, getActiveSeason().catch(() => null)]);
   const teamFilter = sp.team ? Number(sp.team) : null;
   const statusFilter = sp.status === "pending" || sp.status === "played" || sp.status === "walkover" ? sp.status : "all";
 
@@ -22,6 +23,7 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
     prisma.match.findMany({
       include: { homeTeam: true, awayTeam: true },
       where: {
+        ...(activeSeason ? { seasonId: activeSeason.id } : {}),
         ...(teamFilter ? { OR: [{ homeTeamId: teamFilter }, { awayTeamId: teamFilter }] } : {}),
         ...(statusFilter !== "all" ? { status: statusFilter } : {}),
       },

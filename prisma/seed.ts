@@ -44,18 +44,27 @@ async function main() {
   await prisma.news.deleteMany();
   await prisma.cupMatch.deleteMany();
   await prisma.match.deleteMany();
+  await prisma.seasonTeam.deleteMany();
+  await prisma.season.deleteMany();
   await prisma.team.deleteMany();
 
   const createdTeams = await Promise.all(teams.map((team) => prisma.team.create({ data: team })));
+
+  const season = await prisma.season.create({ data: { name: "Temporada 1", status: "active" } });
+  await prisma.seasonTeam.createMany({
+    data: createdTeams.map((t) => ({ seasonId: season.id, teamId: t.id, division: t.division })),
+  });
+
   const leagueMatches = [1, 2, 3].flatMap((division) =>
     generateDoubleRoundRobin(createdTeams.filter((team) => team.division === division), division)
   );
-  await prisma.match.createMany({ data: leagueMatches });
+  await prisma.match.createMany({ data: leagueMatches.map((m) => ({ ...m, seasonId: season.id })) });
 
   const cupTeams = createdTeams.filter((team) => team.cupEnabled);
   const bracket = buildCupBracket(cupTeams);
   await prisma.cupMatch.createMany({
     data: bracket.matches.map(({ round, order, homeTeamId, awayTeamId, status }) => ({
+      seasonId: season.id,
       round,
       order,
       homeTeamId,

@@ -1,0 +1,168 @@
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import prisma from "@/lib/prisma";
+import { getStandings } from "@/lib/standings";
+import { DIVISION_NAMES, DIVISION_COLORS, CUP_ROUND_LABELS, CUP_ROUND_ORDER, CUP_ROUNDS } from "@/lib/constants";
+
+export const dynamic = "force-dynamic";
+
+function Logo({ src, name }: { src?: string | null; name: string }) {
+  return (
+    <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white/10 ring-1 ring-white/10">
+      {src ? <Image alt={name} className="object-cover" fill src={src} sizes="28px" /> : null}
+    </div>
+  );
+}
+
+export default async function SeasonHistorialPage({ params }: { params: Promise<{ seasonId: string }> }) {
+  const { seasonId } = await params;
+  const sid = parseInt(seasonId);
+  if (!sid) notFound();
+
+  const season = await prisma.season.findUnique({ where: { id: sid } });
+  if (!season) notFound();
+
+  const [division1, division2, division3, cupMatches] = await Promise.all([
+    getStandings(1, sid),
+    getStandings(2, sid),
+    getStandings(3, sid),
+    prisma.cupMatch.findMany({
+      where: { seasonId: sid },
+      include: { homeTeam: true, awayTeam: true },
+      orderBy: { order: "asc" },
+    }),
+  ]);
+
+  cupMatches.sort((a, b) => CUP_ROUND_ORDER[a.round] - CUP_ROUND_ORDER[b.round] || a.order - b.order);
+  const cupRounds = CUP_ROUNDS.filter((r) => cupMatches.some((m) => m.round === r));
+  const finalMatch = cupMatches.find((m) => m.round === "final");
+  const cupWinner = finalMatch
+    ? finalMatch.homeSets != null && finalMatch.awaySets != null
+      ? finalMatch.homeSets > finalMatch.awaySets
+        ? finalMatch.homeTeam
+        : finalMatch.awayTeam
+      : null
+    : null;
+
+  const divisions = [division1, division2, division3];
+
+  return (
+    <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 space-y-8">
+      <div>
+        <Link className="text-sm text-slate-400 hover:text-apipana-gold transition-colors" href="/historial">
+          ← Historial
+        </Link>
+        <div className="mt-4 flex items-center gap-4">
+          <h1 className="text-5xl font-black gradient-text">{season.name}</h1>
+          <span className="rounded-full bg-slate-600/30 px-3 py-1 text-xs font-bold text-slate-400 border border-slate-500/20">
+            {season.status === "active" ? "Activa" : "Cerrada"}
+          </span>
+        </div>
+        <p className="mt-2 text-slate-400">
+          Iniciada: {season.createdAt.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}
+          {season.closedAt && (
+            <> · Cerrada: {season.closedAt.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}</>
+          )}
+        </p>
+      </div>
+
+      {/* Cup winner highlight */}
+      {cupWinner && (
+        <section className="glass rounded-3xl p-6 flex items-center gap-4">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white/10">
+            {cupWinner.logoUrl && (
+              <Image alt={cupWinner.name} className="object-cover" fill sizes="56px" src={cupWinner.logoUrl} />
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-apipana-gold">Campeón de Copa</p>
+            <p className="text-2xl font-black text-white">{cupWinner.name}</p>
+          </div>
+        </section>
+      )}
+
+      {/* Standings */}
+      <section className="grid gap-6 xl:grid-cols-3">
+        {divisions.map((standings, index) => (
+          <article className="glass overflow-hidden rounded-3xl" key={index}>
+            <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+              <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${DIVISION_COLORS[index + 1].badgeBg} ${DIVISION_COLORS[index + 1].badgeText}`}>
+                {DIVISION_NAMES[index + 1]}
+              </span>
+              <h2 className={`text-xl font-black ${DIVISION_COLORS[index + 1].text}`}>División {index + 1}</h2>
+            </div>
+            {standings.length === 0 ? (
+              <p className="px-5 py-4 text-sm text-slate-500">Sin datos.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="score-table w-full table-fixed text-xs sm:text-sm">
+                  <thead>
+                    <tr>
+                      <th className="w-8 text-center">#</th>
+                      <th className="text-left">Equipo</th>
+                      <th className="w-8 text-center">G</th>
+                      <th className="w-8 text-center">P</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {standings.map((row, pos) => (
+                      <tr key={row.team.id}>
+                        <td className="text-center font-black text-slate-400">{pos + 1}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <Logo name={row.team.name} src={row.team.logoUrl} />
+                            <span className="truncate font-semibold">{row.team.name}</span>
+                          </div>
+                        </td>
+                        <td className="text-center font-black text-emerald-400">{row.won}</td>
+                        <td className="text-center font-bold text-red-400">{row.lost}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </article>
+        ))}
+      </section>
+
+      {/* Cup bracket summary */}
+      {cupRounds.length > 0 && (
+        <section className="glass rounded-3xl p-6 space-y-5">
+          <h2 className="text-xl font-black text-slate-200">Copa</h2>
+          {cupRounds.map((round) => (
+            <div key={round}>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                {CUP_ROUND_LABELS[round]}
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {cupMatches
+                  .filter((m) => m.round === round && m.homeSets != null && m.awaySets != null)
+                  .map((m) => {
+                    const homeWon = (m.homeSets ?? 0) > (m.awaySets ?? 0);
+                    return (
+                      <div key={m.id} className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/3 px-3 py-2.5 text-sm">
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <span className={`truncate font-semibold ${homeWon ? "text-emerald-400" : "text-slate-400"}`}>
+                            {m.homeTeam?.name ?? "?"}
+                          </span>
+                          <span className={`truncate font-semibold ${!homeWon ? "text-emerald-400" : "text-slate-400"}`}>
+                            {m.awayTeam?.name ?? "?"}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 font-black tabular-nums">
+                          <span className={homeWon ? "text-emerald-300" : "text-slate-500"}>{m.homeSets}</span>
+                          <span className={!homeWon ? "text-emerald-300" : "text-slate-500"}>{m.awaySets}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+    </main>
+  );
+}

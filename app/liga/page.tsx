@@ -1,7 +1,9 @@
 import Image from "next/image";
+import Link from "next/link";
 import { LeagueSchedule } from "@/components/LeagueSchedule";
 import prisma from "@/lib/prisma";
 import { getStandings } from "@/lib/standings";
+import { getActiveSeason } from "@/lib/season";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -67,13 +69,17 @@ function getRankColor(pos: number, total: number): string {
 }
 
 export default async function LigaPage() {
+  const activeSeason = await getActiveSeason().catch(() => null);
+  const sid = activeSeason?.id;
+
   const [division1, division2, division3, matches] = await Promise.all([
-    getStandings(1), getStandings(2), getStandings(3),
+    getStandings(1, sid), getStandings(2, sid), getStandings(3, sid),
     prisma.match.findMany({
       include: {
         homeTeam: { select: { name: true, logoUrl: true } },
         awayTeam: { select: { name: true, logoUrl: true } },
       },
+      where: sid ? { seasonId: sid } : {},
       orderBy: [{ division: "asc" }, { matchday: "asc" }, { id: "asc" }],
     }),
   ]);
@@ -82,8 +88,18 @@ export default async function LigaPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
-      <h1 className="pb-2 text-6xl font-black leading-tight gradient-text">Liga</h1>
-      <p className="mt-1 mb-8 text-slate-400">Clasificaciones de las tres divisiones.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="pb-2 text-6xl font-black leading-tight gradient-text">Liga</h1>
+          <p className="mt-1 mb-8 text-slate-400">
+            Clasificaciones de las tres divisiones
+            {activeSeason ? ` · ${activeSeason.name}` : ""}.
+          </p>
+        </div>
+        <Link className="mt-2 text-sm text-slate-400 hover:text-apipana-gold transition-colors shrink-0" href="/historial">
+          Historial →
+        </Link>
+      </div>
 
       <section className="grid gap-6 xl:grid-cols-3">
         {divisions.map((standings, index) => (

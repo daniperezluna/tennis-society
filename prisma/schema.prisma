@@ -13,6 +13,11 @@ enum MatchStatus {
   walkover
 }
 
+enum SeasonStatus {
+  active
+  closed
+}
+
 enum CupRound {
   roundOf64
   roundOf32
@@ -20,6 +25,30 @@ enum CupRound {
   quarterfinal
   semifinal
   final
+}
+
+model Season {
+  id        Int          @id @default(autoincrement())
+  name      String
+  status    SeasonStatus @default(active)
+  createdAt DateTime     @default(now())
+  closedAt  DateTime?
+
+  matches     Match[]
+  cupMatches  CupMatch[]
+  seasonTeams SeasonTeam[]
+}
+
+model SeasonTeam {
+  id       Int @id @default(autoincrement())
+  seasonId Int
+  teamId   Int
+  division Int
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, teamId])
 }
 
 model Team {
@@ -35,10 +64,12 @@ model Team {
   awayMatches    Match[]    @relation("AwayTeam")
   homeCupMatches CupMatch[] @relation("HomeCupTeam")
   awayCupMatches CupMatch[] @relation("AwayCupTeam")
+  seasonTeams    SeasonTeam[]
 }
 
 model Match {
   id         Int         @id @default(autoincrement())
+  seasonId   Int
   division   Int
   homeTeamId Int
   awayTeamId Int
@@ -51,12 +82,14 @@ model Match {
   createdAt  DateTime    @default(now())
   playedAt   DateTime?
 
-  homeTeam Team @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  awayTeam Team @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  season   Season @relation(fields: [seasonId], references: [id])
+  homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
 }
 
 model CupMatch {
   id          Int         @id @default(autoincrement())
+  seasonId    Int
   round       CupRound
   order       Int         @default(0)
   homeTeamId  Int?
@@ -71,6 +104,7 @@ model CupMatch {
   nextMatchId Int?
   nextSlot    String?
 
+  season      Season     @relation(fields: [seasonId], references: [id])
   homeTeam    Team?      @relation("HomeCupTeam", fields: [homeTeamId], references: [id], onDelete: SetNull)
   awayTeam    Team?      @relation("AwayCupTeam", fields: [awayTeamId], references: [id], onDelete: SetNull)
   nextMatch   CupMatch?  @relation("CupAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)

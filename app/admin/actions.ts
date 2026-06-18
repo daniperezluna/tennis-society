@@ -8,6 +8,7 @@ import { buildCupBracket, nextPowerOfTwo } from "@/lib/cup";
 import { generateDoubleRoundRobin } from "@/lib/league";
 import prisma from "@/lib/prisma";
 import { getSeededCupTeams } from "@/lib/standings";
+import { getActiveSeason, createNewSeason, getSeasonTeams } from "@/lib/season";
 import { cupMatchCreateSchema, matchCreateSchema, newsSchema, parseFormData, teamSchema } from "@/lib/validation";
 
 function revalidateCompetition() {
@@ -41,7 +42,8 @@ export async function deleteTeam(formData: FormData) {
 
 export async function createMatch(formData: FormData) {
   await requireAdmin();
-  await prisma.match.create({ data: matchCreateSchema.parse(parseFormData(formData)) });
+  const season = await getActiveSeason();
+  await prisma.match.create({ data: { ...matchCreateSchema.parse(parseFormData(formData)), seasonId: season.id } });
   revalidatePath("/admin/partidos");
   revalidateCompetition();
 }
@@ -77,20 +79,25 @@ export async function deleteMatch(formData: FormData) {
 
 export async function resetLeagues() {
   await requireAdmin();
-  await prisma.match.deleteMany();
+  const season = await getActiveSeason();
+  await prisma.match.deleteMany({ where: { seasonId: season.id } });
   revalidatePath("/admin/partidos");
   revalidateCompetition();
 }
 
 export async function generateLeagues() {
   await requireAdmin();
-  const teams = await prisma.team.findMany({ orderBy: [{ division: "asc" }, { name: "asc" }] });
+  const season = await getActiveSeason();
+  const seasonTeams = await getSeasonTeams(season.id);
   const matches = [1, 2, 3].flatMap((division) =>
-    generateDoubleRoundRobin(teams.filter((team) => team.division === division), division)
+    generateDoubleRoundRobin(
+      seasonTeams.filter((st) => st.division === division).map((st) => st.team),
+      division
+    ).map((m) => ({ ...m, seasonId: season.id }))
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.match.deleteMany();
+    await tx.match.deleteMany({ where: { seasonId: season.id } });
     if (matches.length) await tx.match.createMany({ data: matches });
   });
 
@@ -100,7 +107,8 @@ export async function generateLeagues() {
 
 export async function createCupMatch(formData: FormData) {
   await requireAdmin();
-  await prisma.cupMatch.create({ data: cupMatchCreateSchema.parse(parseFormData(formData)) });
+  const season = await getActiveSeason();
+  await prisma.cupMatch.create({ data: { ...cupMatchCreateSchema.parse(parseFormData(formData)), seasonId: season.id } });
   revalidatePath("/admin/copa");
   revalidateCompetition();
 }
@@ -206,14 +214,16 @@ export async function deleteCupMatch(formData: FormData) {
 
 export async function resetCup() {
   await requireAdmin();
-  await prisma.cupMatch.deleteMany();
+  const season = await getActiveSeason();
+  await prisma.cupMatch.deleteMany({ where: { seasonId: season.id } });
   revalidatePath("/admin/copa");
   revalidateCompetition();
 }
 
 export async function generateCup() {
   await requireAdmin();
-  const seeded = await getSeededCupTeams();
+  const season = await getActiveSeason();
+  const seeded = await getSeededCupTeams(season.id);
   const bracketSize = nextPowerOfTwo(seeded.length);
   const byes = Math.max(0, bracketSize - seeded.length);
   const topSeeds = seeded.slice(0, byes);
@@ -226,9 +236,10 @@ export async function generateCup() {
   const bracket = buildCupBracket(ordered);
 
   await prisma.$transaction(async (tx) => {
-    await tx.cupMatch.deleteMany();
+    await tx.cupMatch.deleteMany({ where: { seasonId: season.id } });
     await tx.cupMatch.createMany({
       data: bracket.matches.map(({ round, order, homeTeamId, awayTeamId, status }) => ({
+        seasonId: season.id,
         round,
         order,
         homeTeamId,
@@ -300,6 +311,24 @@ export async function deleteAdminUser(formData: FormData) {
 
   await prisma.adminUser.delete({ where: { id } });
   revalidatePath("/admin/usuarios");
+}
+
+export async function createNewSeasonAction(formData: FormData) {
+  await requireAdmin();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) throw new Error("El nombre de la temporada es obligatorio");
+  const closeCurrent = formData.get("closeCurrent") === "on";
+
+  const teamIds = formData.getAll("teamId").map(Number).filter(Boolean);
+  const assignments = teamIds.map((teamId) => ({
+    teamId,
+    division: Number(formData.get(`division_${teamId}`) || 1),
+  }));
+
+  await createNewSeason(name, assignments, closeCurrent);
+  revalidatePath("/admin/temporadas");
+  revalidatePath("/admin");
+  revalidateCompetition();
 }
 
 export async function updateOwnPassword(formData: FormData) {

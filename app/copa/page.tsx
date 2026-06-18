@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CUP_ROUND_LABELS, CUP_ROUND_ORDER, CUP_ROUNDS } from "@/lib/constants";
 import { realR0Indices } from "@/lib/cup";
+import { getActiveSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
@@ -132,8 +133,10 @@ function MatchSlot({
 }
 
 export default async function CopaPage() {
+  const activeSeason = await getActiveSeason().catch(() => null);
   const matches = await prisma.cupMatch.findMany({
     include: { homeTeam: true, awayTeam: true },
+    where: activeSeason ? { seasonId: activeSeason.id } : {},
     orderBy: { order: "asc" },
   });
   matches.sort((a, b) => CUP_ROUND_ORDER[a.round] - CUP_ROUND_ORDER[b.round] || a.order - b.order);

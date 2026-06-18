@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllPlayersStats, getMatchdayProgression } from "@/lib/stats";
+import { getAllSeasons, getActiveSeason } from "@/lib/season";
+import { SeasonSelector } from "@/components/SeasonSelector";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import type { ProgressionSeries, MatchEntry } from "@/lib/stats";
 
@@ -171,18 +173,29 @@ function formatDate(d: Date | null) {
 
 export default async function PlayerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ season?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, sp, seasons, activeSeason] = await Promise.all([
+    params,
+    searchParams,
+    getAllSeasons(),
+    getActiveSeason().catch(() => null),
+  ]);
   const teamId = parseInt(id);
   if (isNaN(teamId)) notFound();
 
-  const allStats = await getAllPlayersStats();
+  const seasonParam = sp.season;
+  const seasonId = seasonParam === "all" ? 0 : seasonParam ? parseInt(seasonParam) || undefined : undefined;
+  const currentSelector = seasonParam === "all" ? "all" : seasonParam ?? "active";
+
+  const allStats = await getAllPlayersStats(seasonId);
   const stats = allStats.find((s) => s.team.id === teamId);
   if (!stats) notFound();
 
-  const progression = await getMatchdayProgression(stats.team.division);
+  const progression = await getMatchdayProgression(stats.team.division, seasonId);
 
   // H2H vs each opponent in same division
   const divisionOpponents = allStats.filter(
@@ -217,13 +230,16 @@ export default async function PlayerPage({
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 flex flex-col gap-8">
-      {/* Breadcrumb */}
-      <Link
-        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-apipana-gold transition-colors"
-        href="/estadisticas"
-      >
-        ← Estadísticas
-      </Link>
+      {/* Breadcrumb + season selector */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Link
+          className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-apipana-gold transition-colors"
+          href="/estadisticas"
+        >
+          ← Estadísticas
+        </Link>
+        <SeasonSelector activeSeason={activeSeason} current={currentSelector} seasons={seasons} />
+      </div>
 
       {/* Header */}
       <section className="glass rounded-3xl p-6 flex items-center gap-5">

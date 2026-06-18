@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getAllPlayersStats, getDivisionHeatmap, getContestedMatches } from "@/lib/stats";
+import { getAllSeasons, getActiveSeason } from "@/lib/season";
+import { SeasonSelector } from "@/components/SeasonSelector";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import type { HeatmapData, PlayerStats } from "@/lib/stats";
 
@@ -100,13 +102,27 @@ function SoSBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-export default async function EstadisticasPage() {
+export default async function EstadisticasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>;
+}) {
+  const [sp, seasons, activeSeason] = await Promise.all([
+    searchParams,
+    getAllSeasons(),
+    getActiveSeason().catch(() => null),
+  ]);
+
+  const seasonParam = sp.season; // undefined = active, "all" = career, "<id>" = specific
+  const seasonId = seasonParam === "all" ? 0 : seasonParam ? parseInt(seasonParam) || undefined : undefined;
+  const currentSelector = seasonParam === "all" ? "all" : seasonParam ?? "active";
+
   const [allStats, contested, heatmap1, heatmap2, heatmap3] = await Promise.all([
-    getAllPlayersStats(),
-    getContestedMatches(),
-    getDivisionHeatmap(1),
-    getDivisionHeatmap(2),
-    getDivisionHeatmap(3),
+    getAllPlayersStats(seasonId),
+    getContestedMatches(15, seasonId),
+    getDivisionHeatmap(1, seasonId),
+    getDivisionHeatmap(2, seasonId),
+    getDivisionHeatmap(3, seasonId),
   ]);
 
   const heatmaps = [heatmap1, heatmap2, heatmap3];
@@ -140,9 +156,12 @@ export default async function EstadisticasPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 flex flex-col gap-8">
-      <div>
-        <h1 className="pb-2 text-6xl font-black leading-tight gradient-text">Stats</h1>
-        <p className="mt-1 text-slate-400">Cifras y récords de la temporada.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="pb-2 text-6xl font-black leading-tight gradient-text">Stats</h1>
+          <p className="mt-1 text-slate-400">Cifras y récords de la temporada.</p>
+        </div>
+        <SeasonSelector activeSeason={activeSeason} current={currentSelector} seasons={seasons} />
       </div>
 
       {/* Highlights */}

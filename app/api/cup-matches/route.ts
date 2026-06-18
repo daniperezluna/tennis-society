@@ -4,6 +4,7 @@ import { assertAdminApiRequest } from "@/lib/auth";
 import { handleApiError } from "@/lib/api";
 import { cupMatchCreateSchema } from "@/lib/validation";
 import { CUP_ROUND_ORDER } from "@/lib/constants";
+import { getActiveSeason } from "@/lib/season";
 
 export async function GET() {
   try {
@@ -23,9 +24,10 @@ export async function POST(req: NextRequest) {
   if (unauthorized) return unauthorized;
 
   try {
+    const season = await getActiveSeason();
     const data = cupMatchCreateSchema.parse(await req.json());
     const match = await prisma.cupMatch.create({
-      data,
+      data: { ...data, seasonId: season.id },
       include: { homeTeam: true, awayTeam: true },
     });
     return Response.json(match, { status: 201 });

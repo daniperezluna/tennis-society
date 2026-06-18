@@ -1,9 +1,9 @@
 import prisma from "@/lib/prisma";
+import { getActiveSeason } from "@/lib/season";
 
 // Returns cup-eligible teams ordered as seeds: D1.1, D2.1, D3.1, D1.2, D2.2, D3.2, ...
-// Top seeds (= number of byes) get the protected bracket positions; the rest play R0.
-export async function getSeededCupTeams() {
-  const standings = await Promise.all([1, 2, 3].map((d) => getStandings(d)));
+export async function getSeededCupTeams(seasonId?: number) {
+  const standings = await Promise.all([1, 2, 3].map((d) => getStandings(d, seasonId)));
   const eligible = standings.map((rows) => rows.filter((r) => r.team.cupEnabled));
   const maxLen = Math.max(...eligible.map((rows) => rows.length));
   const seeded: typeof eligible[number][number]["team"][] = [];
@@ -15,11 +15,21 @@ export async function getSeededCupTeams() {
   return seeded;
 }
 
-export async function getStandings(division?: number) {
-  const [teams, matches] = await Promise.all([
-    prisma.team.findMany({ where: division ? { division } : {}, orderBy: { name: "asc" } }),
+export async function getStandings(division?: number, seasonId?: number) {
+  const sid = seasonId ?? (await getActiveSeason()).id;
+
+  const [seasonTeams, matches] = await Promise.all([
+    prisma.seasonTeam.findMany({
+      where: { seasonId: sid, ...(division ? { division } : {}) },
+      include: { team: true },
+      orderBy: { team: { name: "asc" } },
+    }),
     prisma.match.findMany({
-      where: { status: { in: ["played", "walkover"] }, ...(division ? { division } : {}) },
+      where: {
+        seasonId: sid,
+        status: { in: ["played", "walkover"] },
+        ...(division ? { division } : {}),
+      },
       include: {
         homeTeam: { select: { name: true } },
         awayTeam: { select: { name: true } },
@@ -28,7 +38,7 @@ export async function getStandings(division?: number) {
     }),
   ]);
 
-  const standings = teams.map((team) => {
+  const standings = seasonTeams.map(({ team }) => {
     const relevant = matches.filter((m) => m.homeTeamId === team.id || m.awayTeamId === team.id);
     let played = 0;
     let won = 0;
@@ -71,7 +81,7 @@ export async function getStandings(division?: number) {
     return { team, played, won, lost, setsWon, setsLost, setsDiff: setsWon - setsLost, points: won, form };
   });
 
-  // Build head-to-head map: how many wins team A has against team B (in played matches).
+  // Head-to-head tiebreaker
   const h2h = new Map<string, number>();
   for (const match of matches) {
     if (match.homeSets == null || match.awaySets == null) continue;
@@ -83,7 +93,7 @@ export async function getStandings(division?: number) {
   function h2hAdvantage(aId: number, bId: number) {
     const aWins = h2h.get(`${aId}>${bId}`) ?? 0;
     const bWins = h2h.get(`${bId}>${aId}`) ?? 0;
-    return bWins - aWins; // positive => a is ranked lower (b had more wins)
+    return bWins - aWins;
   }
 
   standings.sort((a, b) => {

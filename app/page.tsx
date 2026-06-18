@@ -3,6 +3,7 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getStandings } from "@/lib/standings";
+import { getActiveSeason } from "@/lib/season";
 import { CUP_ROUND_LABELS, DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import { getAI } from "@/lib/ai-provider";
 
@@ -127,17 +128,20 @@ function IconClock() {
 }
 
 export default async function Home() {
+  const activeSeason = await getActiveSeason().catch(() => null);
+  const sid = activeSeason?.id;
+
   const [division1, division2, division3, news, teamsCount, cupCount, playedMatches, pendingMatches, recentLeague, recentCup] = await Promise.all([
-    getStandings(1),
-    getStandings(2),
-    getStandings(3),
+    getStandings(1, sid),
+    getStandings(2, sid),
+    getStandings(3, sid),
     prisma.news.findMany({ orderBy: { createdAt: "desc" }, take: 3 }),
     prisma.team.count(),
     prisma.team.count({ where: { cupEnabled: true } }),
-    prisma.match.count({ where: { status: "played" } }),
-    prisma.match.count({ where: { status: "pending" } }),
+    prisma.match.count({ where: { status: "played", ...(sid ? { seasonId: sid } : {}) } }),
+    prisma.match.count({ where: { status: "pending", ...(sid ? { seasonId: sid } : {}) } }),
     prisma.match.findMany({
-      where: { status: { in: ["played", "walkover"] }, playedAt: { not: null } },
+      where: { status: { in: ["played", "walkover"] }, playedAt: { not: null }, ...(sid ? { seasonId: sid } : {}) },
       orderBy: { playedAt: "desc" },
       take: 5,
       include: {
@@ -146,7 +150,7 @@ export default async function Home() {
       },
     }),
     prisma.cupMatch.findMany({
-      where: { status: { in: ["played", "walkover"] }, playedAt: { not: null } },
+      where: { status: { in: ["played", "walkover"] }, playedAt: { not: null }, ...(sid ? { seasonId: sid } : {}) },
       orderBy: { playedAt: "desc" },
       take: 5,
       include: {
