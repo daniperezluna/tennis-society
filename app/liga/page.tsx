@@ -6,6 +6,28 @@ import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+function FormBadge({ result, tight, opponentName }: { result: "W" | "L"; tight: boolean; opponentName: string }) {
+  const colorClass =
+    result === "W"
+      ? tight
+        ? "text-yellow-400 border-yellow-400/30 bg-yellow-400/10"
+        : "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+      : tight
+        ? "text-yellow-500 border-yellow-500/30 bg-yellow-500/10"
+        : "text-red-500 border-red-500/30 bg-red-500/10";
+
+  return (
+    <span className="group relative inline-flex">
+      <span className={`inline-flex h-5 w-5 cursor-default items-center justify-center rounded border text-xs font-black ${colorClass}`}>
+        {result}
+      </span>
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs font-semibold text-slate-200 shadow-lg group-hover:block">
+        {opponentName}
+      </span>
+    </span>
+  );
+}
+
 function Logo({ src, name }: { src?: string | null; name: string }) {
   return (
     <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white/10 ring-1 ring-white/10 sm:h-9 sm:w-9">
@@ -88,6 +110,7 @@ export default async function LigaPage() {
                     <th className="w-8 text-center sm:w-10">P</th>
                     <th className="w-12 text-center sm:w-14" title="Diferencia de sets">DS</th>
                     <th className="w-10 text-center sm:w-14">Pts</th>
+                    <th className="w-20 text-center sm:w-24" title="Últimos 3 partidos">Forma</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -111,6 +134,13 @@ export default async function LigaPage() {
                         {row.setsDiff > 0 ? `+${row.setsDiff}` : row.setsDiff}
                       </td>
                       <td className="text-center text-lg font-black text-amber-300">{row.points}</td>
+                      <td className="text-center">
+                        <div className="flex items-center justify-center gap-0.5">
+                          {row.form.map((f, i) => (
+                            <FormBadge key={i} opponentName={f.opponentName} result={f.result} tight={f.tight} />
+                          ))}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

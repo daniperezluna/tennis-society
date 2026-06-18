@@ -18,7 +18,14 @@ export async function getSeededCupTeams() {
 export async function getStandings(division?: number) {
   const [teams, matches] = await Promise.all([
     prisma.team.findMany({ where: division ? { division } : {}, orderBy: { name: "asc" } }),
-    prisma.match.findMany({ where: { status: { in: ["played", "walkover"] }, ...(division ? { division } : {}) } }),
+    prisma.match.findMany({
+      where: { status: { in: ["played", "walkover"] }, ...(division ? { division } : {}) },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+      orderBy: [{ playedAt: "desc" }, { id: "desc" }],
+    }),
   ]);
 
   const standings = teams.map((team) => {
@@ -46,7 +53,22 @@ export async function getStandings(division?: number) {
       else lost++;
     }
 
-    return { team, played, won, lost, setsWon, setsLost, setsDiff: setsWon - setsLost, points: won };
+    const formMatches = matches
+      .filter((m) => (m.homeTeamId === team.id || m.awayTeamId === team.id) && m.homeSets != null && m.awaySets != null)
+      .slice(0, 3);
+
+    const form = formMatches.map((m) => {
+      const isHome = m.homeTeamId === team.id;
+      const ownScore = isHome ? m.homeSets! : m.awaySets!;
+      const rivalScore = isHome ? m.awaySets! : m.homeSets!;
+      return {
+        result: (ownScore > rivalScore ? "W" : "L") as "W" | "L",
+        tight: Math.min(ownScore, rivalScore) === 1,
+        opponentName: isHome ? m.awayTeam.name : m.homeTeam.name,
+      };
+    });
+
+    return { team, played, won, lost, setsWon, setsLost, setsDiff: setsWon - setsLost, points: won, form };
   });
 
   // Build head-to-head map: how many wins team A has against team B (in played matches).
