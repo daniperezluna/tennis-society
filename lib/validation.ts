@@ -30,10 +30,8 @@ export const teamSchema = z.object({
   name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().trim().email("Debe ser un email válido").optional().or(z.literal("")).transform((v) => v || null),
   logoUrl: optionalUrl,
-  division: z.coerce.number().int().min(1).max(3).default(1),
-  cupEnabled: z
-    .union([z.boolean(), z.string(), z.null(), z.undefined()])
-    .transform(() => true),
+  division: z.preprocess((v) => (v == null || v === "" ? 1 : v), z.coerce.number().int().min(1).max(3)),
+  cupEnabled: z.unknown().transform(() => true),
 });
 
 const matchBaseSchema = z.object({
