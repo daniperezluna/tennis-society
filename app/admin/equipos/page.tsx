@@ -8,46 +8,86 @@ import { createTeam, deleteTeam, updateTeam } from "../actions";
 
 export const dynamic = "force-dynamic";
 
+const inputCls = "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-apipana-gold/40";
+
 export default async function EquiposAdminPage() {
   await requireAdmin();
-  const teams = await prisma.team.findMany({ orderBy: [{ division: "asc" }, { name: "asc" }] });
+  const teams = await prisma.team.findMany({ orderBy: { name: "asc" } });
+
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10 space-y-8">
       <AdminNav />
-      <h1 className="text-4xl font-black text-amber-300">Equipos</h1>
-      <p className="mt-2 text-slate-300">Edita nombre completo, logo, división y si entra o no en sorteo de Copa.</p>
+      <div>
+        <h1 className="text-4xl font-black gradient-text">Equipos</h1>
+        <p className="mt-1 text-slate-400">La división se asigna al crear cada temporada.</p>
+      </div>
 
-      <form action={createTeam} className="mt-6 grid gap-3 rounded-3xl border border-white/10 bg-white/10 p-5 md:grid-cols-6">
-        <input className="rounded-xl bg-black/30 px-3 py-2 md:col-span-2" name="name" placeholder="Nombre completo" required />
-        <input className="rounded-xl bg-black/30 px-3 py-2" name="division" placeholder="División" type="number" min="1" max="3" required />
-        <input className="rounded-xl bg-black/30 px-3 py-2" name="logoUrl" placeholder="Logo URL" />
-        <input className="rounded-xl bg-black/30 px-3 py-2" name="email" placeholder="Email" type="email" />
-        <label className="flex items-center gap-2 rounded-xl bg-black/30 px-3 py-2 text-sm"><input name="cupEnabled" type="checkbox" defaultChecked /> Copa</label>
-        <SubmitButton className="rounded-xl bg-amber-300 px-3 py-2 font-black text-slate-950 md:col-span-6">Crear equipo</SubmitButton>
-      </form>
+      {/* Create form */}
+      <section className="glass rounded-3xl p-6 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">Nuevo equipo</h2>
+        <form action={createTeam} className="grid gap-3 sm:grid-cols-3">
+          <input className={inputCls} name="name" placeholder="Nombre" required />
+          <input className={inputCls} name="logoUrl" placeholder="URL del escudo (opcional)" />
+          <input className={inputCls} name="email" placeholder="Email (opcional)" type="email" />
+          <SubmitButton
+            className="rounded-xl bg-apipana-gold px-4 py-2.5 text-sm font-black text-black hover:bg-apipana-gold/80 transition-colors sm:col-span-3"
+            pendingLabel="Creando…"
+          >
+            Crear equipo
+          </SubmitButton>
+        </form>
+      </section>
 
-      <div className="mt-6 grid gap-4">
+      {/* Team list */}
+      <section className="space-y-3">
         {teams.map((team) => (
-          <article className="rounded-3xl border border-white/10 bg-slate-950/70 p-4 shadow-xl" key={team.id}>
-            <form action={updateTeam} className="grid gap-3 md:grid-cols-[70px_1.8fr_110px_1.5fr_1.5fr_100px_auto] md:items-center">
+          <article className="glass rounded-2xl p-4" key={team.id}>
+            <form action={updateTeam} className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
               <input name="id" type="hidden" value={team.id} />
-              <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-white/10">
-                {team.logoUrl ? <Image alt={team.name} className="object-cover" fill src={team.logoUrl} sizes="64px" /> : null}
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10">
+                {team.logoUrl ? (
+                  <Image alt={team.name} className="object-cover" fill sizes="48px" src={team.logoUrl} />
+                ) : null}
               </div>
-              <input className="rounded-xl bg-white/10 px-3 py-2 font-bold" name="name" defaultValue={team.name} />
-              <input className="rounded-xl bg-white/10 px-3 py-2" name="division" type="number" min="1" max="3" defaultValue={team.division} />
-              <input className="rounded-xl bg-white/10 px-3 py-2" name="logoUrl" defaultValue={team.logoUrl ?? ""} />
-              <input className="rounded-xl bg-white/10 px-3 py-2" name="email" type="email" defaultValue={team.email ?? ""} placeholder="Email" />
-              <label className="flex items-center gap-2 text-sm"><input name="cupEnabled" type="checkbox" defaultChecked={team.cupEnabled} /> Copa</label>
-              <SubmitButton className="rounded-full bg-emerald-300 px-4 py-2 text-sm font-black text-slate-950">Guardar</SubmitButton>
+              <input
+                className={`${inputCls} min-w-0 flex-1`}
+                defaultValue={team.name}
+                name="name"
+                placeholder="Nombre"
+                required
+              />
+              <input
+                className={`${inputCls} min-w-0 flex-1`}
+                defaultValue={team.logoUrl ?? ""}
+                name="logoUrl"
+                placeholder="URL del escudo"
+              />
+              <input
+                className={`${inputCls} min-w-0 flex-1`}
+                defaultValue={team.email ?? ""}
+                name="email"
+                placeholder="Email"
+                type="email"
+              />
+              <SubmitButton
+                className="shrink-0 rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-4 py-2.5 text-sm font-black text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                pendingLabel="…"
+              >
+                Guardar
+              </SubmitButton>
             </form>
-            <form action={deleteTeam} className="mt-3 flex justify-end">
+            <form action={deleteTeam} className="mt-2 flex justify-end">
               <input name="id" type="hidden" value={team.id} />
-              <ConfirmButton className="rounded-full border border-red-300/40 px-3 py-1 text-sm text-red-200" message="¿Eliminar este equipo? Si tiene partidos asociados puede fallar por seguridad.">Eliminar</ConfirmButton>
+              <ConfirmButton
+                className="rounded-lg border border-red-400/20 px-3 py-1 text-xs text-red-400 hover:border-red-400/40 hover:text-red-300 transition-colors"
+                message={`¿Eliminar "${team.name}"? Si tiene partidos asociados puede fallar.`}
+              >
+                Eliminar
+              </ConfirmButton>
             </form>
           </article>
         ))}
-      </div>
+      </section>
     </main>
   );
 }
