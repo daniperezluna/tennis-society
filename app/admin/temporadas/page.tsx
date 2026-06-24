@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 import { getAllSeasons, getSeasonTeams } from "@/lib/season";
-import { createNewSeasonAction } from "../actions";
+import { createNewSeasonAction, moveTeamDivision } from "../actions";
 import prisma from "@/lib/prisma";
 import { DIVISION_NAMES } from "@/lib/constants";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -20,6 +20,14 @@ export default async function TemporadasAdminPage() {
   const closedSeasons = seasons.filter((s) => s.status === "closed");
 
   const activeSeasonTeams = activeSeason ? await getSeasonTeams(activeSeason.id) : [];
+
+  const playedMatches = activeSeason
+    ? await prisma.match.findMany({
+        where: { seasonId: activeSeason.id, status: { not: "pending" } },
+        select: { homeTeamId: true, awayTeamId: true },
+      })
+    : [];
+  const teamsWithPlayedMatches = new Set(playedMatches.flatMap((m) => [m.homeTeamId, m.awayTeamId]));
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 space-y-8">
@@ -70,6 +78,56 @@ export default async function TemporadasAdminPage() {
         </section>
       ) : (
         <div className="glass rounded-3xl p-6 text-slate-400">No hay ninguna temporada activa.</div>
+      )}
+
+      {/* Move teams between divisions */}
+      {activeSeason && activeSeasonTeams.length > 0 && (
+        <section className="glass rounded-3xl p-6 space-y-4">
+          <div>
+            <h2 className="text-lg font-black text-slate-200">Mover equipos de división</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Solo equipos sin partidos disputados. Al mover, sus partidos pendientes se eliminarán — regenera la liga después.
+            </p>
+          </div>
+          <div className="divide-y divide-white/5 rounded-2xl border border-white/8 overflow-hidden">
+            {activeSeasonTeams.map((st) => {
+              const hasPlayed = teamsWithPlayedMatches.has(st.teamId);
+              return hasPlayed ? (
+                <div key={st.id} className="flex items-center justify-between px-4 py-2.5 opacity-40">
+                  <span className="text-sm font-semibold text-slate-400">{st.team.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-500">{DIVISION_NAMES[st.division]}</span>
+                    <span className="rounded-md bg-slate-700/40 px-2 py-0.5 text-xs text-slate-500">Con partidos</span>
+                  </div>
+                </div>
+              ) : (
+                <form action={moveTeamDivision} className="flex items-center justify-between px-4 py-2.5 gap-3" key={st.id}>
+                  <input name="seasonTeamId" type="hidden" value={st.id} />
+                  <span className="text-sm font-semibold text-slate-200">{st.team.name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-slate-500">{DIVISION_NAMES[st.division]}</span>
+                    <span className="text-slate-600">→</span>
+                    <select
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white appearance-none focus:outline-none focus:ring-1 focus:ring-apipana-gold/40"
+                      defaultValue={st.division}
+                      name="division"
+                    >
+                      {[1, 2, 3].map((d) => (
+                        <option key={d} value={d}>{DIVISION_NAMES[d]}</option>
+                      ))}
+                    </select>
+                    <SubmitButton
+                      className="shrink-0 rounded-xl border border-apipana-gold/30 bg-apipana-gold/15 px-3 py-1.5 text-xs font-black text-apipana-gold transition-colors hover:bg-apipana-gold/25"
+                      pendingLabel="…"
+                    >
+                      Mover
+                    </SubmitButton>
+                  </div>
+                </form>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Create new season form */}

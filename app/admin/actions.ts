@@ -313,6 +313,39 @@ export async function deleteAdminUser(formData: FormData) {
   revalidatePath("/admin/usuarios");
 }
 
+export async function moveTeamDivision(formData: FormData) {
+  await requireAdmin();
+  const seasonTeamId = Number(formData.get("seasonTeamId"));
+  const newDivision = Number(formData.get("division"));
+
+  if (!seasonTeamId || ![1, 2, 3].includes(newDivision)) throw new Error("Datos inválidos");
+
+  const seasonTeam = await prisma.seasonTeam.findUniqueOrThrow({ where: { id: seasonTeamId } });
+
+  const playedCount = await prisma.match.count({
+    where: {
+      seasonId: seasonTeam.seasonId,
+      status: { not: "pending" },
+      OR: [{ homeTeamId: seasonTeam.teamId }, { awayTeamId: seasonTeam.teamId }],
+    },
+  });
+  if (playedCount > 0) throw new Error("Este equipo ya tiene partidos disputados y no puede cambiar de división.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.match.deleteMany({
+      where: {
+        seasonId: seasonTeam.seasonId,
+        OR: [{ homeTeamId: seasonTeam.teamId }, { awayTeamId: seasonTeam.teamId }],
+      },
+    });
+    await tx.seasonTeam.update({ where: { id: seasonTeamId }, data: { division: newDivision } });
+    await tx.team.update({ where: { id: seasonTeam.teamId }, data: { division: newDivision } });
+  });
+
+  revalidatePath("/admin/temporadas");
+  revalidateCompetition();
+}
+
 export async function createNewSeasonAction(formData: FormData) {
   await requireAdmin();
   const name = String(formData.get("name") || "").trim();
