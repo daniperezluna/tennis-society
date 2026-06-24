@@ -216,7 +216,7 @@ export default async function ComparadorPage({
             <StatSection label="Victorias" valueA={statsA.won} valueB={statsB.won} />
             <StatSection label="Derrotas" higherIsBetter={false} valueA={statsA.lost} valueB={statsB.lost} />
             <StatSection
-              format={(v) => `${(v * 100).toFixed(0)}%`}
+              format={(v) => `${v}%`}
               label="Ratio V"
               valueA={Math.round(statsA.winRatio * 100)}
               valueB={Math.round(statsB.winRatio * 100)}
