@@ -31,7 +31,6 @@ export const teamSchema = z.object({
   email: z.string().trim().email("Debe ser un email válido").optional().or(z.literal("")).transform((v) => v || null),
   logoUrl: optionalUrl,
   division: z.preprocess((v) => (v == null || v === "" ? 1 : v), z.coerce.number().int().min(1).max(3)),
-  cupEnabled: z.unknown().transform(() => true),
 });
 
 const matchBaseSchema = z.object({
