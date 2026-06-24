@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { LeagueSchedule } from "@/components/LeagueSchedule";
+import { TeamLogo } from "@/components/TeamLogo";
 import prisma from "@/lib/prisma";
 import { getStandings } from "@/lib/standings";
 import { getActiveSeason } from "@/lib/season";
@@ -30,13 +30,6 @@ function FormBadge({ result, tight, opponentName }: { result: "W" | "L"; tight: 
   );
 }
 
-function Logo({ src, name }: { src?: string | null; name: string }) {
-  return (
-    <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white/10 ring-1 ring-white/10 sm:h-9 sm:w-9">
-      {src ? <Image alt={name} className="object-cover" fill src={src} sizes="36px" /> : null}
-    </div>
-  );
-}
 
 const TOP_RANK_CLASS: Record<number, string> = {
   0: "rank-gold",
@@ -139,7 +132,7 @@ export default async function LigaPage() {
                       </td>
                       <td>
                         <div className="flex min-w-0 items-center gap-2">
-                          <Logo name={row.team.name} src={row.team.logoUrl} />
+                          <TeamLogo name={row.team.name} src={row.team.logoUrl} />
                           <p className="min-w-0 truncate font-semibold">{row.team.name}</p>
                         </div>
                       </td>

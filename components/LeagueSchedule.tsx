@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TeamLogo } from "@/components/TeamLogo";
 import { DIVISION_NAMES, DIVISION_COLORS, type MatchStatus } from "@/lib/constants";
 
 type ScheduleMatch = {
@@ -32,13 +32,6 @@ function regularRounds(teamCount: number) {
   return evenCount - 1;
 }
 
-function TeamLogo({ src, name }: { src: string | null; name: string }) {
-  return (
-    <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10">
-      {src ? <Image alt={name} className="object-cover" fill sizes="28px" src={src} /> : null}
-    </span>
-  );
-}
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -63,7 +56,7 @@ function MatchRow({ match }: { match: ScheduleMatch }) {
     <article className="rounded-xl border border-white/8 bg-black/20 p-3">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <p className={`flex min-w-0 items-center gap-2 ${homeWon ? "text-emerald-300" : "text-white"}`}>
-          <TeamLogo name={match.homeTeam.name} src={match.homeTeam.logoUrl} />
+          <TeamLogo variant="schedule" name={match.homeTeam.name} src={match.homeTeam.logoUrl} />
           <span className="min-w-0 truncate text-sm font-semibold">{match.homeTeam.name}</span>
         </p>
         <p className="text-center text-xl font-black tabular-nums text-amber-300">
@@ -71,7 +64,7 @@ function MatchRow({ match }: { match: ScheduleMatch }) {
         </p>
         <p className={`flex min-w-0 items-center justify-end gap-2 ${awayWon ? "text-emerald-300" : "text-white"}`}>
           <span className="min-w-0 truncate text-right text-sm font-semibold">{match.awayTeam.name}</span>
-          <TeamLogo name={match.awayTeam.name} src={match.awayTeam.logoUrl} />
+          <TeamLogo variant="schedule" name={match.awayTeam.name} src={match.awayTeam.logoUrl} />
         </p>
       </div>
       <div className="mt-2 flex justify-center">
@@ -102,7 +95,7 @@ function MatchdayCard({
       </div>
       {byeTeam && (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/8 bg-black/20 px-3 py-2">
-          <TeamLogo name={byeTeam.name} src={byeTeam.logoUrl} />
+          <TeamLogo variant="schedule" name={byeTeam.name} src={byeTeam.logoUrl} />
           <span className="text-sm font-semibold text-slate-200">{byeTeam.name}</span>
           <span className="ml-auto text-xs font-bold uppercase tracking-wider text-slate-500">Descansa</span>
         </div>
