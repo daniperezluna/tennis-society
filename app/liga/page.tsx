@@ -112,14 +112,14 @@ export default async function LigaPage() {
               <table className="score-table w-full table-fixed text-xs sm:text-sm">
                 <thead>
                   <tr>
-                    <th className="w-8 text-center sm:w-10">#</th>
+                    <th className="w-7 text-center">#</th>
                     <th className="text-left">Equipo</th>
-                    <th className="w-8 text-center sm:w-10">J</th>
-                    <th className="w-8 text-center sm:w-10">G</th>
-                    <th className="w-8 text-center sm:w-10">P</th>
-                    <th className="w-12 text-center sm:w-14" title="Diferencia de sets">DS</th>
-                    <th className="w-10 text-center sm:w-14">Pts</th>
-                    <th className="w-20 text-center sm:w-24" title="Últimos 3 partidos">Forma</th>
+                    <th className="w-8 text-center">J</th>
+                    <th className="w-7 text-center">G</th>
+                    <th className="w-7 text-center">P</th>
+                    <th className="w-10 text-center" title="Diferencia de sets">DS</th>
+                    <th className="w-9 text-center">Pts</th>
+                    <th className="w-20 text-center" title="Últimos 3 partidos">Forma</th>
                   </tr>
                 </thead>
                 <tbody>
