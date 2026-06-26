@@ -28,10 +28,16 @@ function DivBadge({ division }: { division: number }) {
 function StreakBadge({ streak }: { streak: number }) {
   if (streak === 0) return <span className="text-slate-500 text-xs font-semibold">—</span>;
   const isWin = streak > 0;
+  const isHot = isWin && streak >= 3;
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-black ${
-      isWin ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-black ${
+      isHot
+        ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-500/40"
+        : isWin
+          ? "bg-emerald-500/15 text-emerald-400"
+          : "bg-red-500/15 text-red-400"
     }`}>
+      {isHot && <span aria-hidden="true" className="text-[10px]">🔥</span>}
       {isWin ? `+${streak}` : streak}
     </span>
   );

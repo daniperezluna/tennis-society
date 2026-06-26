@@ -37,12 +37,17 @@ export default async function SeasonHistorialPage({ params }: { params: Promise<
   cupMatches.sort((a, b) => CUP_ROUND_ORDER[a.round] - CUP_ROUND_ORDER[b.round] || a.order - b.order);
   const cupRounds = CUP_ROUNDS.filter((r) => cupMatches.some((m) => m.round === r));
   const finalMatch = cupMatches.find((m) => m.round === "final");
-  const cupWinner = finalMatch
-    ? finalMatch.homeSets != null && finalMatch.awaySets != null
-      ? finalMatch.homeSets > finalMatch.awaySets
-        ? finalMatch.homeTeam
-        : finalMatch.awayTeam
-      : null
+  const finalDecided = finalMatch &&
+    (finalMatch.status === "played" || finalMatch.status === "walkover") &&
+    finalMatch.homeSets != null && finalMatch.awaySets != null;
+  const cupWinner = finalDecided
+    ? (finalMatch!.homeSets! > finalMatch!.awaySets! ? finalMatch!.homeTeam : finalMatch!.awayTeam)
+    : null;
+  const cupRunnerUp = finalDecided
+    ? (finalMatch!.homeSets! > finalMatch!.awaySets! ? finalMatch!.awayTeam : finalMatch!.homeTeam)
+    : null;
+  const finalScore = finalDecided
+    ? `${Math.max(finalMatch!.homeSets!, finalMatch!.awaySets!)}–${Math.min(finalMatch!.homeSets!, finalMatch!.awaySets!)}`
     : null;
 
   const divisions = [division1, division2, division3];
@@ -67,17 +72,52 @@ export default async function SeasonHistorialPage({ params }: { params: Promise<
         </p>
       </div>
 
-      {/* Cup winner highlight */}
+      {/* Cup podium */}
       {cupWinner && (
-        <section className="glass rounded-3xl p-6 flex items-center gap-4">
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white/10">
-            {cupWinner.logoUrl && (
-              <Image alt={cupWinner.name} className="object-cover" fill sizes="56px" src={cupWinner.logoUrl} />
-            )}
+        <section className="overflow-hidden rounded-3xl border border-apipana-gold/20 bg-gradient-to-br from-[#1a1230] via-[#221840] to-[#10283e]">
+          <div className="px-6 py-4 border-b border-white/8">
+            <p className="text-xs font-black uppercase tracking-widest text-apipana-gold">🏆 Podio de Copa</p>
           </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-apipana-gold">Campeón de Copa</p>
-            <p className="text-2xl font-black text-white">{cupWinner.name}</p>
+          <div className="p-6 flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+            {/* Champion */}
+            <div className="flex flex-col items-center gap-3 flex-1">
+              <div className="relative">
+                <div className="absolute -inset-3 rounded-full bg-apipana-gold/15 blur-xl" />
+                <div className="relative h-28 w-28 overflow-hidden rounded-3xl ring-2 ring-apipana-gold/60 shadow-lg shadow-apipana-gold/20 bg-white/10">
+                  {cupWinner.logoUrl
+                    ? <Image alt={cupWinner.name} className="object-cover" fill sizes="112px" src={cupWinner.logoUrl} />
+                    : <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-apipana-gold">{cupWinner.name[0]}</span>
+                  }
+                </div>
+                <span className="absolute -top-3 -right-3 text-2xl" aria-hidden="true">♛</span>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-apipana-gold mb-1">Campeón</p>
+                <p className="text-xl font-black text-white">{cupWinner.name}</p>
+                {finalScore && <p className="text-sm font-bold text-apipana-gold/70 mt-0.5">{finalScore} en la final</p>}
+              </div>
+            </div>
+
+            <div className="hidden sm:block w-px self-stretch bg-white/10" />
+
+            {/* Runner-up */}
+            {cupRunnerUp && (
+              <div className="flex flex-col items-center gap-3 flex-1">
+                <div className="relative">
+                  <div className="h-20 w-20 overflow-hidden rounded-2xl ring-1 ring-slate-400/40 shadow-md bg-white/10">
+                    {cupRunnerUp.logoUrl
+                      ? <Image alt={cupRunnerUp.name} className="object-cover" fill sizes="80px" src={cupRunnerUp.logoUrl} />
+                      : <span className="absolute inset-0 flex items-center justify-center text-3xl font-black text-slate-400">{cupRunnerUp.name[0]}</span>
+                    }
+                  </div>
+                  <span className="absolute -top-2 -right-2 text-lg" aria-hidden="true">🥈</span>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Subcampeón</p>
+                  <p className="text-lg font-black text-slate-300">{cupRunnerUp.name}</p>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}

@@ -256,6 +256,12 @@ export default async function PlayerPage({
           </div>
           <h1 className={`text-4xl font-black ${divColor.text}`}>{stats.team.name}</h1>
         </div>
+        {stats.currentStreak >= 3 && (
+          <div className="shrink-0 flex flex-col items-center gap-1 rounded-2xl bg-orange-500/15 px-4 py-3 ring-1 ring-orange-500/30">
+            <span className="text-3xl leading-none" aria-hidden="true">🔥</span>
+            <p className="text-xs font-black text-orange-300 text-center whitespace-nowrap">{stats.currentStreak} seguidas</p>
+          </div>
+        )}
       </section>
 
       {/* Stats clave */}

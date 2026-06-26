@@ -161,6 +161,30 @@ export default async function Home() {
   ]);
   const leaders = [division1[0], division2[0], division3[0]].filter(Boolean);
 
+  const allRecent = [
+    ...recentLeague.map((m) => ({
+      type: "liga" as const,
+      label: `Liga · ${DIVISION_NAMES[m.division]}`,
+      homeName: m.homeTeam.name,
+      awayName: m.awayTeam.name,
+      homeSets: m.homeSets,
+      awaySets: m.awaySets,
+      status: m.status,
+      playedAt: m.playedAt!,
+    })),
+    ...recentCup.map((m) => ({
+      type: "copa" as const,
+      label: `Copa · ${CUP_ROUND_LABELS[m.round]}`,
+      homeName: m.homeTeam?.name ?? "?",
+      awayName: m.awayTeam?.name ?? "?",
+      homeSets: m.homeSets,
+      awaySets: m.awaySets,
+      status: m.status,
+      playedAt: m.playedAt!,
+    })),
+  ].sort((a, b) => b.playedAt.getTime() - a.playedAt.getTime());
+  const lastMatch = allRecent[0] ?? null;
+
   let sloganMessage: string | null = null;
   let headlineMessage: string | null = null;
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -307,6 +331,39 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Último resultado */}
+      {lastMatch && (() => {
+        const homeWon = (lastMatch.homeSets ?? 0) > (lastMatch.awaySets ?? 0);
+        const awayWon = (lastMatch.awaySets ?? 0) > (lastMatch.homeSets ?? 0);
+        const isWO = lastMatch.status === "walkover";
+        const homeScore = isWO ? (homeWon ? "W" : "—") : (lastMatch.homeSets ?? "?");
+        const awayScore = isWO ? (awayWon ? "W" : "—") : (lastMatch.awaySets ?? "?");
+        return (
+          <section className="animate-fade-in-up glass rounded-3xl px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Último resultado</span>
+              <span className="rounded-full bg-white/8 border border-white/10 px-2.5 py-0.5 text-[10px] font-bold text-slate-400">{lastMatch.label}</span>
+            </div>
+            <div className="flex flex-1 items-center justify-center gap-3 sm:gap-6">
+              <p className={`min-w-0 text-right text-lg font-black truncate flex-1 ${homeWon ? "text-white" : "text-slate-400"}`}>
+                {lastMatch.homeName}
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`text-4xl font-black tabular-nums leading-none ${homeWon ? "text-emerald-300" : "text-slate-500"}`}>{homeScore}</span>
+                <span className="text-slate-600 font-black text-2xl">·</span>
+                <span className={`text-4xl font-black tabular-nums leading-none ${awayWon ? "text-emerald-300" : "text-slate-500"}`}>{awayScore}</span>
+              </div>
+              <p className={`min-w-0 text-left text-lg font-black truncate flex-1 ${awayWon ? "text-white" : "text-slate-400"}`}>
+                {lastMatch.awayName}
+              </p>
+            </div>
+            <p className="shrink-0 text-xs text-slate-600 sm:text-right">
+              {lastMatch.playedAt.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+            </p>
+          </section>
+        );
+      })()}
 
       {/* Stats */}
       <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">

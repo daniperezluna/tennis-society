@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { CupMatchModel, TeamModel } from "@/app/generated/prisma/models";
 import prisma from "@/lib/prisma";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CupChampionBanner } from "@/components/CupChampionBanner";
 import { CUP_ROUND_LABELS, CUP_ROUND_ORDER, CUP_ROUNDS } from "@/lib/constants";
 import { realR0Indices } from "@/lib/cup";
 import { getActiveSeason } from "@/lib/season";
@@ -146,6 +147,20 @@ export default async function CopaPage() {
   const totalR0Slots = secondRoundCount > 0 ? secondRoundCount * 2 : firstRoundMatches.length;
   const firstRoundByes = Math.max(0, totalR0Slots - firstRoundMatches.length);
   const firstRoundRealIndices = realR0Indices(firstRoundByes, totalR0Slots);
+  const finalMatch = matches.find((m) => m.round === "final");
+  const finalDecided = finalMatch &&
+    (finalMatch.status === "played" || finalMatch.status === "walkover") &&
+    finalMatch.homeSets != null && finalMatch.awaySets != null;
+  const cupChampion = finalDecided
+    ? (finalMatch!.homeSets! > finalMatch!.awaySets! ? finalMatch!.homeTeam : finalMatch!.awayTeam)
+    : null;
+  const cupRunnerUp = finalDecided
+    ? (finalMatch!.homeSets! > finalMatch!.awaySets! ? finalMatch!.awayTeam : finalMatch!.homeTeam)
+    : null;
+  const finalScore = finalDecided
+    ? `${Math.max(finalMatch!.homeSets!, finalMatch!.awaySets!)}–${Math.min(finalMatch!.homeSets!, finalMatch!.awaySets!)}`
+    : null;
+
   const SLOT_HEIGHT = 170;
   const bracketHeight = Math.max(totalR0Slots, 1) * SLOT_HEIGHT;
 
@@ -153,6 +168,16 @@ export default async function CopaPage() {
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
       <h1 className="text-6xl font-black gradient-text">Copa</h1>
       <p className="mt-2 text-slate-400">Eliminatoria directa. Sin segunda oportunidad.</p>
+
+      {cupChampion && (
+        <CupChampionBanner
+          championLogo={cupChampion.logoUrl}
+          championName={cupChampion.name}
+          runnerUpLogo={cupRunnerUp?.logoUrl ?? null}
+          runnerUpName={cupRunnerUp?.name ?? null}
+          score={finalScore ?? ""}
+        />
+      )}
 
       {activeRounds.length === 0 ? (
         <p className="mt-12 text-center text-slate-500">La copa todavía no ha comenzado.</p>

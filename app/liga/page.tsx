@@ -134,6 +134,9 @@ export default async function LigaPage() {
                         <div className="flex min-w-0 items-center gap-2">
                           <TeamLogo name={row.team.name} src={row.team.logoUrl} />
                           <p className="min-w-0 truncate font-semibold">{row.team.name}</p>
+                          {pos === 0 && (
+                            <span aria-label="Líder de división" className="text-apipana-gold text-xs leading-none" title="Líder">♛</span>
+                          )}
                         </div>
                       </td>
                       <td className="text-center text-slate-400">{row.played}</td>

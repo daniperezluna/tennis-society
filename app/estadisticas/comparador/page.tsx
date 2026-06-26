@@ -84,6 +84,90 @@ function StatSection({ label, valueA, valueB, format, higherIsBetter }: BarRowPr
   );
 }
 
+const RADAR_LABELS = ["Ratio V", "Victorias", "Dif. Sets", "Racha max", "Racha act.", "2-0s"];
+
+function RadarChart({
+  valuesA,
+  valuesB,
+  nameA,
+  nameB,
+  size = 280,
+}: {
+  valuesA: number[];
+  valuesB: number[];
+  nameA: string;
+  nameB: string;
+  size?: number;
+}) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.34;
+  const n = RADAR_LABELS.length;
+  const angle = (i: number) => (i / n) * 2 * Math.PI - Math.PI / 2;
+  const pt = (val: number, i: number) => ({
+    x: cx + val * r * Math.cos(angle(i)),
+    y: cy + val * r * Math.sin(angle(i)),
+  });
+  const toPath = (vals: number[]) =>
+    vals.map((v, i) => { const { x, y } = pt(v, i); return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ") + " Z";
+  const gridLevels = [0.33, 0.67, 1.0];
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[280px]" aria-label={`Radar chart comparando ${nameA} y ${nameB}`}>
+        {/* Axis lines */}
+        {RADAR_LABELS.map((_, i) => {
+          const { x, y } = pt(1, i);
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.10)" strokeWidth={1} />;
+        })}
+        {/* Grid */}
+        {gridLevels.map((level) => (
+          <polygon
+            key={level}
+            points={RADAR_LABELS.map((_, i) => { const { x, y } = pt(level, i); return `${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ")}
+            fill="none"
+            stroke="rgba(255,255,255,0.07)"
+            strokeWidth={1}
+          />
+        ))}
+        {/* Team B fill */}
+        <path d={toPath(valuesB)} fill="rgba(20,109,167,0.18)" stroke="#146da7" strokeWidth={1.5} strokeLinejoin="round" />
+        {/* Team A fill */}
+        <path d={toPath(valuesA)} fill="rgba(235,176,57,0.18)" stroke="#ebb039" strokeWidth={1.5} strokeLinejoin="round" />
+        {/* Dots A */}
+        {valuesA.map((v, i) => { const { x, y } = pt(v, i); return <circle key={i} cx={x} cy={y} r={3} fill="#ebb039" />; })}
+        {/* Dots B */}
+        {valuesB.map((v, i) => { const { x, y } = pt(v, i); return <circle key={i} cx={x} cy={y} r={3} fill="#146da7" />; })}
+        {/* Labels */}
+        {RADAR_LABELS.map((label, i) => {
+          const { x, y } = pt(1.28, i);
+          return (
+            <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.45)" fontSize={9} fontWeight={700}>
+              {label}
+            </text>
+          );
+        })}
+      </svg>
+      <div className="flex items-center gap-5 text-xs font-bold">
+        <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-full bg-apipana-gold/70" />{nameA}</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-full bg-apipana-blue/70" />{nameB}</span>
+      </div>
+    </div>
+  );
+}
+
+function buildRadarValues(statsA: PlayerStats, statsB: PlayerStats): { valuesA: number[]; valuesB: number[] } {
+  const norm = (a: number, b: number) => { const m = Math.max(a, b, 0.01); return [a / m, b / m]; };
+  const [rA, rB] = norm(statsA.winRatio, statsB.winRatio);
+  const [wA, wB] = norm(statsA.won, statsB.won);
+  const minDS = Math.min(statsA.setsDiff, statsB.setsDiff, 0);
+  const [dA, dB] = norm(statsA.setsDiff - minDS, statsB.setsDiff - minDS);
+  const [sA, sB] = norm(statsA.maxWinStreak, statsB.maxWinStreak);
+  const [cA, cB] = norm(Math.max(statsA.currentStreak, 0), Math.max(statsB.currentStreak, 0));
+  const [tA, tB] = norm(statsA.wins20, statsB.wins20);
+  return { valuesA: [rA, wA, dA, sA, cA, tA], valuesB: [rB, wB, dB, sB, cB, tB] };
+}
+
 function H2HSection({ historyA, historyB, statsA, statsB }: {
   historyA: MatchEntry[];
   historyB: MatchEntry[];
@@ -207,6 +291,16 @@ export default async function ComparadorPage({
               <div className="text-center text-slate-600 font-black text-2xl">vs</div>
               <TeamHeader side="B" stats={statsB} />
             </div>
+          </section>
+
+          {/* Radar chart */}
+          <section className="glass rounded-3xl p-6">
+            <h2 className="mb-5 text-lg font-black text-slate-200">Perfil comparado</h2>
+            <RadarChart
+              {...buildRadarValues(statsA, statsB)}
+              nameA={statsA.team.name}
+              nameB={statsB.team.name}
+            />
           </section>
 
           {/* Stats comparison */}
