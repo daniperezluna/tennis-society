@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { DIVISION_NAMES, DIVISION_COLORS } from "@/lib/constants";
 import { generateLeagues, resetLeagues, updateMatchResult } from "../actions";
-import { getActiveSeason } from "@/lib/season";
+import { getActiveSeason, getSeasonTeams } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,8 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
   const teamFilter = sp.team ? Number(sp.team) : null;
   const statusFilter = sp.status === "pending" || sp.status === "played" || sp.status === "walkover" ? sp.status : "all";
 
-  const [allTeams, matches] = await Promise.all([
-    prisma.team.findMany({ orderBy: [{ division: "asc" }, { name: "asc" }] }),
+  const [seasonTeams, matches] = await Promise.all([
+    activeSeason ? getSeasonTeams(activeSeason.id) : Promise.resolve([]),
     prisma.match.findMany({
       include: { homeTeam: true, awayTeam: true },
       where: {
@@ -89,8 +89,8 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
             <option value="">Todos</option>
             {[1, 2, 3].map((div) => (
               <optgroup key={div} label={DIVISION_NAMES[div]}>
-                {allTeams.filter((t) => t.division === div).map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                {seasonTeams.filter((st) => st.division === div).map((st) => (
+                  <option key={st.team.id} value={st.team.id}>{st.team.name}</option>
                 ))}
               </optgroup>
             ))}
