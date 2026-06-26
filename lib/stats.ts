@@ -97,7 +97,7 @@ export async function getAllPlayersStats(seasonId?: number): Promise<PlayerStats
 
   const [teams, matches] = await Promise.all([
     sid
-      ? prisma.seasonTeam.findMany({ where: { seasonId: sid }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => r.team))
+      ? prisma.seasonTeam.findMany({ where: { seasonId: sid }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => ({ ...r.team, division: r.division })))
       : prisma.team.findMany({ orderBy: { name: "asc" } }),
     prisma.match.findMany({
       where: { status: { in: ["played", "walkover"] }, ...(sid ? { seasonId: sid } : {}) },
@@ -222,7 +222,7 @@ export async function getDivisionHeatmap(division: number, seasonId?: number): P
 
   const [teams, matches] = await Promise.all([
     sid
-      ? prisma.seasonTeam.findMany({ where: { seasonId: sid, division }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => r.team))
+      ? prisma.seasonTeam.findMany({ where: { seasonId: sid, division }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => ({ ...r.team, division: r.division })))
       : prisma.team.findMany({ where: { division }, orderBy: { name: "asc" } }),
     prisma.match.findMany({
       where: { division, status: { in: ["played", "walkover"] }, ...(sid ? { seasonId: sid } : {}) },
@@ -250,7 +250,7 @@ export async function getMatchdayProgression(division: number, seasonId?: number
 
   const [teams, matches] = await Promise.all([
     sid
-      ? prisma.seasonTeam.findMany({ where: { seasonId: sid, division }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => r.team))
+      ? prisma.seasonTeam.findMany({ where: { seasonId: sid, division }, include: { team: true }, orderBy: { team: { name: "asc" } } }).then((rows) => rows.map((r) => ({ ...r.team, division: r.division })))
       : prisma.team.findMany({ where: { division }, orderBy: { name: "asc" } }),
     prisma.match.findMany({
       where: { division, status: { in: ["played", "walkover"] }, matchday: { not: null }, ...(sid ? { seasonId: sid } : {}) },
