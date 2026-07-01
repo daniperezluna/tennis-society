@@ -88,9 +88,10 @@ model Match {
   createdAt  DateTime    @default(now())
   playedAt   DateTime?
 
-  season   Season @relation(fields: [seasonId], references: [id])
-  homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  season      Season       @relation(fields: [seasonId], references: [id])
+  homeTeam    Team         @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam    Team         @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  predictions Prediction[]
 }
 
 model CupMatch {
@@ -113,8 +114,9 @@ model CupMatch {
   season      Season     @relation(fields: [seasonId], references: [id])
   homeTeam    Team?      @relation("HomeCupTeam", fields: [homeTeamId], references: [id], onDelete: SetNull)
   awayTeam    Team?      @relation("AwayCupTeam", fields: [awayTeamId], references: [id], onDelete: SetNull)
-  nextMatch   CupMatch?  @relation("CupAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
-  prevMatches CupMatch[] @relation("CupAdvance")
+  nextMatch   CupMatch?    @relation("CupAdvance", fields: [nextMatchId], references: [id], onDelete: SetNull)
+  prevMatches CupMatch[]   @relation("CupAdvance")
+  predictions Prediction[]
 }
 
 model AdminUser {
@@ -127,6 +129,7 @@ model AdminUser {
   team         Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
   createdAt    DateTime       @default(now())
   sessions     AdminSession[]
+  predictions  Prediction[]
 }
 
 model AdminSession {
@@ -146,4 +149,22 @@ model News {
   content   String
   imageUrl  String?
   createdAt DateTime @default(now())
+}
+
+model Prediction {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchId    Int?
+  match      Match?    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  cupMatchId Int?
+  cupMatch   CupMatch? @relation(fields: [cupMatchId], references: [id], onDelete: Cascade)
+  homeSets   Int
+  awaySets   Int
+  correct    Boolean?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, matchId])
+  @@unique([userId, cupMatchId])
 }

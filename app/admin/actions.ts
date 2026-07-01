@@ -66,7 +66,9 @@ export async function updateMatchResult(formData: FormData) {
   })();
 
   await prisma.match.update({ where: { id: match.id }, data });
+  await evaluateLeaguePredictions(match.id, data.homeSets, data.awaySets, data.status);
   revalidatePath("/admin/partidos");
+  revalidatePath("/porra");
   revalidateCompetition();
 }
 
@@ -175,7 +177,9 @@ export async function updateCupMatchResult(formData: FormData) {
     });
   }
 
+  await evaluateCupPredictions(id, data.homeSets, data.awaySets, data.status);
   revalidatePath("/admin/copa");
+  revalidatePath("/porra");
   revalidateCompetition();
 }
 
@@ -391,4 +395,46 @@ export async function updateOwnPassword(formData: FormData) {
     where: { userId: current.id, ...(currentToken ? { NOT: { id: currentToken } } : {}) },
   });
   revalidatePath("/admin/usuarios");
+}
+
+async function evaluateLeaguePredictions(
+  matchId: number,
+  homeSets: number | null,
+  awaySets: number | null,
+  status: string,
+) {
+  if (status === "played" && homeSets != null && awaySets != null) {
+    const preds = await prisma.prediction.findMany({ where: { matchId } });
+    await Promise.all(
+      preds.map((p) =>
+        prisma.prediction.update({
+          where: { id: p.id },
+          data: { correct: p.homeSets === homeSets && p.awaySets === awaySets },
+        }),
+      ),
+    );
+  } else {
+    await prisma.prediction.updateMany({ where: { matchId }, data: { correct: null } });
+  }
+}
+
+async function evaluateCupPredictions(
+  cupMatchId: number,
+  homeSets: number | null,
+  awaySets: number | null,
+  status: string,
+) {
+  if (status === "played" && homeSets != null && awaySets != null) {
+    const preds = await prisma.prediction.findMany({ where: { cupMatchId } });
+    await Promise.all(
+      preds.map((p) =>
+        prisma.prediction.update({
+          where: { id: p.id },
+          data: { correct: p.homeSets === homeSets && p.awaySets === awaySets },
+        }),
+      ),
+    );
+  } else {
+    await prisma.prediction.updateMany({ where: { cupMatchId }, data: { correct: null } });
+  }
 }
