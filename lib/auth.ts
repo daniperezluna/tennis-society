@@ -37,23 +37,22 @@ export async function isAdminSession(): Promise<boolean> {
 
 export async function requireAdmin(): Promise<AdminUser> {
   const user = await getAdminUser();
-  if (!user) redirect("/admin/login");
-  if (user.role !== "ADMIN") redirect("/admin/login?error=no-admin");
+  if (!user) redirect("/login");
+  if (user.role !== "ADMIN") redirect("/login");
   return user;
 }
 
-export async function loginAdmin(formData: FormData) {
+export async function loginUser(formData: FormData) {
   "use server";
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
-  if (!email || !password) redirect("/admin/login?error=1");
+  if (!email || !password) redirect("/login?error=1");
 
   const user = await prisma.adminUser.findUnique({ where: { email } });
-  if (!user) redirect("/admin/login?error=1");
+  if (!user) redirect("/login?error=1");
 
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) redirect("/admin/login?error=1");
-  if (user.role !== "ADMIN") redirect("/admin/login?error=no-admin");
+  if (!valid) redirect("/login?error=1");
 
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
@@ -67,7 +66,7 @@ export async function loginAdmin(formData: FormData) {
     path: "/",
     expires: expiresAt,
   });
-  redirect("/admin");
+  redirect(user.role === "ADMIN" ? "/admin" : "/");
 }
 
 export async function logoutAdmin() {
@@ -78,7 +77,7 @@ export async function logoutAdmin() {
     await prisma.adminSession.delete({ where: { id: token } }).catch(() => {});
   }
   store.delete(COOKIE_NAME);
-  redirect("/admin/login");
+  redirect("/login");
 }
 
 export async function assertAdminApiRequest(req: NextRequest) {
