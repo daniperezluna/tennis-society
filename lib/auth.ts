@@ -72,7 +72,7 @@ export async function loginUser(formData: FormData) {
     path: "/",
     expires: expiresAt,
   });
-  redirect(user.role === "ADMIN" ? "/admin" : "/");
+  redirect(user.role === "ADMIN" ? "/admin" : "/cuenta");
 }
 
 export async function logoutAdmin() {

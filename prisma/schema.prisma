@@ -70,6 +70,7 @@ model Team {
   homeCupMatches CupMatch[] @relation("HomeCupTeam")
   awayCupMatches CupMatch[] @relation("AwayCupTeam")
   seasonTeams    SeasonTeam[]
+  user           AdminUser?
 }
 
 model Match {
@@ -122,6 +123,8 @@ model AdminUser {
   passwordHash String
   name         String?
   role         UserRole       @default(ADMIN)
+  teamId       Int?           @unique
+  team         Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
   createdAt    DateTime       @default(now())
   sessions     AdminSession[]
 }
