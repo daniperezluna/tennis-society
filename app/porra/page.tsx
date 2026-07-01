@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PredictionScoreButton } from "@/components/PredictionScoreButton";
+import { PorraLeagueMatches, type PorraMatch } from "@/components/PorraLeagueMatches";
 import { TeamLogo } from "@/components/TeamLogo";
 import { getAdminUser } from "@/lib/auth";
 import { CUP_ROUND_LABELS } from "@/lib/constants";
@@ -15,7 +16,7 @@ export default async function PorraPage() {
 
   const activeSeason = await prisma.season.findFirst({ where: { status: "active" } });
 
-  const [leaderboard, pendingMatches, pendingCupMatches] = await Promise.all([
+  const [leaderboard, rawMatches, pendingCupMatches] = await Promise.all([
     fetchLeaderboard(),
     activeSeason
       ? prisma.match.findMany({
@@ -45,6 +46,18 @@ export default async function PorraPage() {
         })
       : [],
   ]);
+
+  const pendingMatches: PorraMatch[] = rawMatches.map((m) => {
+    const pred = "predictions" in m ? m.predictions[0] : undefined;
+    return {
+      id: m.id,
+      division: m.division,
+      matchday: m.matchday,
+      homeTeam: m.homeTeam,
+      awayTeam: m.awayTeam,
+      currentPrediction: pred ? `${pred.homeSets}-${pred.awaySets}` : null,
+    };
+  });
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -80,29 +93,7 @@ export default async function PorraPage() {
       {/* Partidos de liga */}
       <section className="mt-10">
         <h2 className="mb-3 text-xl font-black text-ball-500">Liga — partidos pendientes</h2>
-        {pendingMatches.length === 0 ? (
-          <p className="text-sm text-text-muted">No hay partidos de liga pendientes.</p>
-        ) : (
-          <ul className="space-y-3">
-            {pendingMatches.map((match) => {
-              const prediction = "predictions" in match && match.predictions[0];
-              return (
-                <li key={match.id} className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 text-sm text-text-muted mb-3">
-                    {match.matchday && <span>Jornada {match.matchday}</span>}
-                  </div>
-                  <PredictionRow
-                    awayTeam={match.awayTeam}
-                    homeTeam={match.homeTeam}
-                    currentPrediction={prediction ? `${prediction.homeSets}-${prediction.awaySets}` : null}
-                    matchId={match.id}
-                    loggedIn={!!user}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <PorraLeagueMatches loggedIn={!!user} matches={pendingMatches} />
       </section>
 
       {/* Partidos de copa */}
@@ -113,19 +104,38 @@ export default async function PorraPage() {
         ) : (
           <ul className="space-y-3">
             {pendingCupMatches.map((match) => {
-              const prediction = "predictions" in match && match.predictions[0];
+              const pred = "predictions" in match ? match.predictions[0] : undefined;
+              const currentPrediction = pred ? `${pred.homeSets}-${pred.awaySets}` : null;
               return (
                 <li key={match.id} className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 text-sm text-text-muted mb-3">
-                    <span>{CUP_ROUND_LABELS[match.round]}</span>
+                  <p className="mb-3 text-sm text-text-muted">{CUP_ROUND_LABELS[match.round]}</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <TeamLogo name={match.homeTeam!.name} src={match.homeTeam!.logoUrl} variant="schedule" />
+                      <span className="max-w-28 truncate font-semibold">{match.homeTeam!.name}</span>
+                    </div>
+                    {user ? (
+                      <div className="flex flex-1 flex-wrap justify-center gap-1.5">
+                        {SCORES.map((score) => (
+                          <form action={upsertPrediction} key={score}>
+                            <input name="cupMatchId" type="hidden" value={match.id} />
+                            <input name="score" type="hidden" value={score} />
+                            <PredictionScoreButton active={currentPrediction === score} score={score} />
+                          </form>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex-1 text-center">
+                        <Link className="text-xs text-ball-500 underline underline-offset-2" href="/login">
+                          Inicia sesión para apostar
+                        </Link>
+                      </div>
+                    )}
+                    <div className="flex min-w-0 items-center justify-end gap-2">
+                      <span className="max-w-28 truncate text-right font-semibold">{match.awayTeam!.name}</span>
+                      <TeamLogo name={match.awayTeam!.name} src={match.awayTeam!.logoUrl} variant="schedule" />
+                    </div>
                   </div>
-                  <PredictionRow
-                    awayTeam={match.awayTeam!}
-                    homeTeam={match.homeTeam!}
-                    currentPrediction={prediction ? `${prediction.homeSets}-${prediction.awaySets}` : null}
-                    cupMatchId={match.id}
-                    loggedIn={!!user}
-                  />
                 </li>
               );
             })}
@@ -133,55 +143,6 @@ export default async function PorraPage() {
         )}
       </section>
     </main>
-  );
-}
-
-function PredictionRow({
-  homeTeam,
-  awayTeam,
-  currentPrediction,
-  matchId,
-  cupMatchId,
-  loggedIn,
-}: {
-  homeTeam: { name: string; logoUrl: string | null };
-  awayTeam: { name: string; logoUrl: string | null };
-  currentPrediction: string | null;
-  matchId?: number;
-  cupMatchId?: number;
-  loggedIn: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-2 min-w-0">
-        <TeamLogo name={homeTeam.name} src={homeTeam.logoUrl} variant="schedule" />
-        <span className="font-semibold truncate max-w-28">{homeTeam.name}</span>
-      </div>
-
-      {loggedIn ? (
-        <div className="flex flex-wrap gap-1.5 flex-1 justify-center">
-          {SCORES.map((score) => (
-            <form action={upsertPrediction} key={score}>
-              {matchId && <input name="matchId" type="hidden" value={matchId} />}
-              {cupMatchId && <input name="cupMatchId" type="hidden" value={cupMatchId} />}
-              <input name="score" type="hidden" value={score} />
-              <PredictionScoreButton active={currentPrediction === score} score={score} />
-            </form>
-          ))}
-        </div>
-      ) : (
-        <div className="flex-1 text-center">
-          <Link className="text-xs text-ball-500 underline underline-offset-2" href="/login">
-            Inicia sesión para apostar
-          </Link>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 min-w-0 justify-end">
-        <span className="font-semibold truncate max-w-28 text-right">{awayTeam.name}</span>
-        <TeamLogo name={awayTeam.name} src={awayTeam.logoUrl} variant="schedule" />
-      </div>
-    </div>
   );
 }
 
