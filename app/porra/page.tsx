@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PredictionScoreButton } from "@/components/PredictionScoreButton";
 import { TeamLogo } from "@/components/TeamLogo";
 import { getAdminUser } from "@/lib/auth";
 import { CUP_ROUND_LABELS } from "@/lib/constants";
@@ -164,16 +165,7 @@ function PredictionRow({
               {matchId && <input name="matchId" type="hidden" value={matchId} />}
               {cupMatchId && <input name="cupMatchId" type="hidden" value={cupMatchId} />}
               <input name="score" type="hidden" value={score} />
-              <button
-                className={`rounded-lg px-3 py-1.5 text-sm font-bold tabular-nums transition-colors ${
-                  currentPrediction === score
-                    ? "bg-ball-500 text-court-950"
-                    : "bg-white/8 text-slate-300 hover:bg-white/14"
-                }`}
-                type="submit"
-              >
-                {score}
-              </button>
+              <PredictionScoreButton active={currentPrediction === score} score={score} />
             </form>
           ))}
         </div>
