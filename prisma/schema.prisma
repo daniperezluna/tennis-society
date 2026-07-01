@@ -13,6 +13,11 @@ enum MatchStatus {
   walkover
 }
 
+enum UserRole {
+  ADMIN
+  PLAYER
+}
+
 enum SeasonStatus {
   active
   closed
@@ -116,6 +121,7 @@ model AdminUser {
   email        String         @unique
   passwordHash String
   name         String?
+  role         UserRole       @default(ADMIN)
   createdAt    DateTime       @default(now())
   sessions     AdminSession[]
 }

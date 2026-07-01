@@ -8,7 +8,7 @@ import prisma from "@/lib/prisma";
 const COOKIE_NAME = "tennis_admin";
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 8;
 
-export type AdminUser = { id: number; email: string; name: string | null };
+export type AdminUser = { id: number; email: string; name: string | null; role: "ADMIN" | "PLAYER" };
 
 function generateSessionId() {
   return crypto.randomBytes(32).toString("hex");
@@ -28,7 +28,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     await prisma.adminSession.delete({ where: { id: token } }).catch(() => {});
     return null;
   }
-  return { id: session.user.id, email: session.user.email, name: session.user.name };
+  return { id: session.user.id, email: session.user.email, name: session.user.name, role: session.user.role };
 }
 
 export async function isAdminSession(): Promise<boolean> {
@@ -38,6 +38,7 @@ export async function isAdminSession(): Promise<boolean> {
 export async function requireAdmin(): Promise<AdminUser> {
   const user = await getAdminUser();
   if (!user) redirect("/admin/login");
+  if (user.role !== "ADMIN") redirect("/admin/login?error=no-admin");
   return user;
 }
 
@@ -52,6 +53,7 @@ export async function loginAdmin(formData: FormData) {
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) redirect("/admin/login?error=1");
+  if (user.role !== "ADMIN") redirect("/admin/login?error=no-admin");
 
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);

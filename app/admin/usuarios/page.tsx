@@ -17,13 +17,17 @@ export default async function UsuariosAdminPage() {
       <AdminNav />
       <h1 className="text-4xl font-black text-ball-500">Usuarios admin</h1>
       <p className="mt-2 text-sm text-text-muted">
-        Cualquier usuario aquí puede entrar al panel. Mínimo 8 caracteres en la contraseña.
+        Solo los administradores pueden acceder al panel. Mínimo 8 caracteres en la contraseña.
       </p>
 
-      <form action={createAdminUser} className="mt-6 grid gap-3 rounded-2xl border border-border bg-card p-5 md:grid-cols-[1fr_1fr_1fr_auto]">
+      <form action={createAdminUser} className="mt-6 grid gap-3 rounded-2xl border border-border bg-card p-5 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
         <input className="rounded-lg bg-court-900 px-3 py-2" name="email" placeholder="email" required type="email" />
         <input className="rounded-lg bg-court-900 px-3 py-2" name="name" placeholder="Nombre (opcional)" />
         <input className="rounded-lg bg-court-900 px-3 py-2" minLength={8} name="password" placeholder="Contraseña (mínimo 8)" required type="password" />
+        <select className="rounded-lg bg-court-900 px-3 py-2" name="role">
+          <option value="ADMIN">Administrador</option>
+          <option value="PLAYER">Jugador</option>
+        </select>
         <SubmitButton className="rounded-lg bg-ball-500 px-4 py-2 font-bold text-court-950">Crear</SubmitButton>
       </form>
 
@@ -41,6 +45,7 @@ export default async function UsuariosAdminPage() {
             <div>
               <p className="font-bold">{user.name ?? user.email}</p>
               <p className="text-sm text-text-muted">{user.email}</p>
+              <p className="text-xs text-text-muted">{user.role === "ADMIN" ? "Administrador" : "Jugador"}</p>
             </div>
             {user.id === current.id ? (
               <span className="rounded-full border border-ball-500/40 bg-ball-500/10 px-3 py-1 text-xs font-bold text-ball-500">

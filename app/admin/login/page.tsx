@@ -7,7 +7,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <form action={loginAdmin} className="w-full rounded-2xl border border-border bg-card p-6">
         <h1 className="text-3xl font-black text-ball-500">Acceso admin</h1>
         <p className="mt-2 text-sm text-text-muted">Inicia sesión con tu correo y contraseña.</p>
-        {params.error && (
+        {params.error === "no-admin" ? (
+          <p className="mt-4 rounded-lg border border-red-400/40 bg-red-950/40 p-3 text-sm text-red-200">
+            No tienes permisos de administrador.
+          </p>
+        ) : params.error && (
           <p className="mt-4 rounded-lg border border-red-400/40 bg-red-950/40 p-3 text-sm text-red-200">
             Credenciales incorrectas.
           </p>

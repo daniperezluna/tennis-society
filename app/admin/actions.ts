@@ -296,8 +296,9 @@ export async function createAdminUser(formData: FormData) {
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) throw new Error("Ya existe un admin con ese email");
 
+  const role = formData.get("role") === "PLAYER" ? "PLAYER" : "ADMIN";
   const passwordHash = await bcrypt.hash(password, 12);
-  await prisma.adminUser.create({ data: { email, passwordHash, name } });
+  await prisma.adminUser.create({ data: { email, passwordHash, name, role } });
   revalidatePath("/admin/usuarios");
 }
 
@@ -306,8 +307,11 @@ export async function deleteAdminUser(formData: FormData) {
   const id = Number(formData.get("id"));
   if (id === current.id) throw new Error("No puedes eliminar tu propio usuario");
 
-  const count = await prisma.adminUser.count();
-  if (count <= 1) throw new Error("Debe quedar al menos un admin");
+  const userToDelete = await prisma.adminUser.findUniqueOrThrow({ where: { id } });
+  if (userToDelete.role === "ADMIN") {
+    const adminCount = await prisma.adminUser.count({ where: { role: "ADMIN" } });
+    if (adminCount <= 1) throw new Error("Debe quedar al menos un administrador");
+  }
 
   await prisma.adminUser.delete({ where: { id } });
   revalidatePath("/admin/usuarios");
