@@ -42,6 +42,12 @@ export async function requireAdmin(): Promise<AdminUser> {
   return user;
 }
 
+export async function requireUser(): Promise<AdminUser> {
+  const user = await getAdminUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
 export async function loginUser(formData: FormData) {
   "use server";
   const email = String(formData.get("email") || "").trim().toLowerCase();

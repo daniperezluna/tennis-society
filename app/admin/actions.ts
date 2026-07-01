@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireUser } from "@/lib/auth";
 import { buildCupBracket, nextPowerOfTwo } from "@/lib/cup";
 import { generateDoubleRoundRobin } from "@/lib/league";
 import prisma from "@/lib/prisma";
@@ -369,7 +369,7 @@ export async function createNewSeasonAction(formData: FormData) {
 }
 
 export async function updateOwnPassword(formData: FormData) {
-  const current = await requireAdmin();
+  const current = await requireUser();
   const currentPassword = String(formData.get("currentPassword") || "");
   const newPassword = String(formData.get("newPassword") || "");
   const confirmPassword = String(formData.get("confirmPassword") || "");
