@@ -64,13 +64,12 @@ export default async function CuentaPage() {
             ) : (
               <ul className="space-y-2">
                 {pendingMatches.map((match) => {
-                  const isHome = match.homeTeamId === team.id;
-                  const opponent = isHome ? match.awayTeam : match.homeTeam;
+                  const opponent = match.homeTeamId === team.id ? match.awayTeam : match.homeTeam;
                   return (
                     <li key={match.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
                       <TeamLogo name={opponent.name} src={opponent.logoUrl} variant="schedule" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{isHome ? "vs" : "en"} {opponent.name}</p>
+                        <p className="font-semibold truncate">vs {opponent.name}</p>
                         {match.matchday && (
                           <p className="text-xs text-text-muted">Jornada {match.matchday}</p>
                         )}
@@ -94,8 +93,7 @@ export default async function CuentaPage() {
             ) : (
               <ul className="space-y-2">
                 {pendingCupMatches.map((match) => {
-                  const isHome = match.homeTeamId === team.id;
-                  const opponent = isHome ? match.awayTeam : match.homeTeam;
+                  const opponent = match.homeTeamId === team.id ? match.awayTeam : match.homeTeam;
                   return (
                     <li key={match.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
                       {opponent ? (
@@ -105,7 +103,7 @@ export default async function CuentaPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">
-                          {opponent ? `${isHome ? "vs" : "en"} ${opponent.name}` : "Rival por determinar"}
+                          {opponent ? `vs ${opponent.name}` : "Rival por determinar"}
                         </p>
                         <p className="text-xs text-text-muted">{CUP_ROUND_LABELS[match.round]}</p>
                       </div>
