@@ -4,13 +4,16 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { PasswordChangeForm } from "@/components/admin/PasswordChangeForm";
 import { requireAdmin } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { createAdminUser, deleteAdminUser } from "../actions";
+import { assignTeamToUser, createAdminUser, deleteAdminUser } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsuariosAdminPage() {
   const current = await requireAdmin();
-  const users = await prisma.adminUser.findMany({ orderBy: [{ createdAt: "asc" }] });
+  const [users, teams] = await Promise.all([
+    prisma.adminUser.findMany({ orderBy: [{ createdAt: "asc" }] }),
+    prisma.team.findMany({ orderBy: [{ name: "asc" }] }),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
@@ -41,12 +44,24 @@ export default async function UsuariosAdminPage() {
 
       <div className="mt-6 space-y-2">
         {users.map((user) => (
-          <article className="flex items-center justify-between gap-4 rounded-xl bg-card p-4" key={user.id}>
+          <article className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-card p-4" key={user.id}>
             <div>
               <p className="font-bold">{user.name ?? user.email}</p>
               <p className="text-sm text-text-muted">{user.email}</p>
               <p className="text-xs text-text-muted">{user.role === "ADMIN" ? "Administrador" : "Jugador"}</p>
             </div>
+            <form action={assignTeamToUser} className="flex items-center gap-2">
+              <input name="id" type="hidden" value={user.id} />
+              <select className="rounded-lg bg-court-900 px-3 py-1.5 text-sm" defaultValue={user.teamId ?? ""} name="teamId">
+                <option value="">Sin equipo</option>
+                {teams
+                  .filter((t) => t.id === user.teamId || !users.some((u) => u.id !== user.id && u.teamId === t.id))
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+              </select>
+              <SubmitButton className="rounded-lg bg-court-700 px-3 py-1.5 text-sm">Guardar</SubmitButton>
+            </form>
             {user.id === current.id ? (
               <span className="rounded-full border border-ball-500/40 bg-ball-500/10 px-3 py-1 text-xs font-bold text-ball-500">
                 Tú

@@ -306,6 +306,17 @@ export async function createAdminUser(formData: FormData) {
   revalidatePath("/admin/usuarios");
 }
 
+export async function assignTeamToUser(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  const raw = formData.get("teamId");
+  const teamId = raw === "" || raw == null ? null : Number(raw);
+
+  await prisma.adminUser.update({ where: { id }, data: { teamId } });
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/porra");
+}
+
 export async function deleteAdminUser(formData: FormData) {
   const current = await requireAdmin();
   const id = Number(formData.get("id"));
