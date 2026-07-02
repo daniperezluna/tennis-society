@@ -4,6 +4,7 @@ import Link from "next/link";
 import { DM_Sans, Outfit } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/NavBar";
+import { getAdminUser } from "@/lib/auth";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -54,11 +55,29 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getAdminUser().catch(() => null);
+
+  const accountSlot = user ? (
+    <Link
+      href={user.role === "ADMIN" ? "/admin" : "/cuenta"}
+      className="relative rounded-full px-3 py-1.5 text-xs font-semibold text-slate-400 transition-colors duration-150 hover:bg-white/6 hover:text-slate-200"
+    >
+      {user.role === "ADMIN" ? "Admin" : "Mi cuenta"}
+    </Link>
+  ) : (
+    <Link
+      href="/login"
+      className="relative rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-400 transition-colors duration-150 hover:border-white/20 hover:text-white"
+    >
+      Entrar
+    </Link>
+  );
+
   return (
     <html lang="es" className={`h-full antialiased ${dmSans.variable} ${outfit.variable}`}>
       <body className="min-h-full bg-background text-foreground">
-        <NavBar />
+        <NavBar accountSlot={accountSlot} />
         <div className="flex min-h-[calc(100vh-65px)] flex-col">{children}</div>
         <footer className="mt-auto">
           <div className="court-divider" />

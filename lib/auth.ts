@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
 const COOKIE_NAME = "tennis_admin";
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 8;
+const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7;
 
 export type AdminUser = { id: number; email: string; name: string | null; role: "ADMIN" | "PLAYER" };
 

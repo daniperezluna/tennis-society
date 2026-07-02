@@ -14,9 +14,7 @@ const nav = [
   { href: "/noticias", label: "Noticias" },
 ];
 
-const adminNav = { href: "/admin", label: "Admin" };
-
-export function NavBar() {
+export function NavBar({ accountSlot }: { accountSlot?: React.ReactNode }) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -62,22 +60,7 @@ export function NavBar() {
             </Link>
           ))}
           <span className="mx-1 h-4 w-px bg-white/15" aria-hidden="true" />
-          <Link
-            className={`relative rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ${
-              isActive(adminNav.href)
-                ? "text-slate-300"
-                : "text-slate-600 hover:bg-white/6 hover:text-slate-400"
-            }`}
-            href={adminNav.href}
-          >
-            {adminNav.label}
-            {isActive(adminNav.href) && (
-              <span
-                className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-white/30"
-                aria-hidden="true"
-              />
-            )}
-          </Link>
+          {accountSlot}
         </div>
       </nav>
     </header>

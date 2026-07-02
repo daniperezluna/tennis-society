@@ -40,11 +40,7 @@ export async function getStandings(division?: number, seasonId?: number) {
 
   const standings = seasonTeams.map(({ team }) => {
     const relevant = matches.filter((m) => m.homeTeamId === team.id || m.awayTeamId === team.id);
-    let played = 0;
-    let won = 0;
-    let lost = 0;
-    let setsWon = 0;
-    let setsLost = 0;
+    let played = 0, won = 0, lost = 0, setsWon = 0, setsLost = 0;
 
     for (const match of relevant) {
       if (match.homeSets == null || match.awaySets == null) continue;

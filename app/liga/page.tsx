@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LeagueSchedule } from "@/components/LeagueSchedule";
 import { TeamLogo } from "@/components/TeamLogo";
+import { getAdminUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getStandings } from "@/lib/standings";
 import { getActiveSeason } from "@/lib/season";
@@ -62,10 +63,13 @@ function getRankColor(pos: number, total: number): string {
 }
 
 export default async function LigaPage() {
-  const activeSeason = await getActiveSeason().catch(() => null);
+  const [user, activeSeason] = await Promise.all([
+    getAdminUser(),
+    getActiveSeason().catch(() => null),
+  ]);
   const sid = activeSeason?.id;
 
-  const [division1, division2, division3, matches] = await Promise.all([
+  const [division1, division2, division3, matches, userPredictions] = await Promise.all([
     getStandings(1, sid), getStandings(2, sid), getStandings(3, sid),
     prisma.match.findMany({
       include: {
@@ -75,7 +79,18 @@ export default async function LigaPage() {
       where: sid ? { seasonId: sid } : {},
       orderBy: [{ division: "asc" }, { matchday: "asc" }, { id: "asc" }],
     }),
+    user
+      ? prisma.prediction.findMany({
+          where: { userId: user.id, matchId: { not: null } },
+          select: { matchId: true, homeSets: true, awaySets: true },
+        })
+      : [],
   ]);
+
+  const predictionsMap: Record<number, string> = {};
+  for (const p of userPredictions) {
+    if (p.matchId != null) predictionsMap[p.matchId] = `${p.homeSets}-${p.awaySets}`;
+  }
   const divisions = [division1, division2, division3];
   const teamCounts = { 1: division1.length, 2: division2.length, 3: division3.length };
 
@@ -163,7 +178,9 @@ export default async function LigaPage() {
       </section>
 
       <LeagueSchedule
+        isLoggedIn={!!user}
         matches={matches}
+        predictions={predictionsMap}
         teamCounts={teamCounts}
         teamsByDivision={{
           1: division1.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),

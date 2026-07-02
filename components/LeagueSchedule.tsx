@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -24,6 +25,8 @@ type LeagueScheduleProps = {
   matches: ScheduleMatch[];
   teamCounts: Record<number, number>;
   teamsByDivision: Record<number, DivisionTeam[]>;
+  predictions?: Record<number, string>;
+  isLoggedIn?: boolean;
 };
 
 function regularRounds(teamCount: number) {
@@ -48,7 +51,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function MatchRow({ match }: { match: ScheduleMatch }) {
+function MatchRow({ match, prediction }: { match: ScheduleMatch; prediction?: string }) {
   const homeWon = match.status === "played" && (match.homeSets ?? 0) > (match.awaySets ?? 0);
   const awayWon = match.status === "played" && (match.awaySets ?? 0) > (match.homeSets ?? 0);
 
@@ -67,8 +70,11 @@ function MatchRow({ match }: { match: ScheduleMatch }) {
           <TeamLogo variant="schedule" name={match.awayTeam.name} src={match.awayTeam.logoUrl} />
         </p>
       </div>
-      <div className="mt-2 flex justify-center">
+      <div className="mt-2 flex items-center justify-center gap-3">
         <StatusBadge status={match.status} />
+        {match.status === "pending" && prediction && (
+          <span className="text-xs font-semibold text-ball-500">Tu porra: {prediction}</span>
+        )}
       </div>
     </article>
   );
@@ -78,17 +84,19 @@ function MatchdayCard({
   title,
   rows,
   byeTeam,
+  predictions,
 }: {
   title: string;
   rows: ScheduleMatch[];
   byeTeam?: DivisionTeam | null;
+  predictions?: Record<number, string>;
 }) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
       <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-amber-300">{title}</h4>
       <div className="space-y-2">
         {rows.length ? (
-          rows.map((match) => <MatchRow key={match.id} match={match} />)
+          rows.map((match) => <MatchRow key={match.id} match={match} prediction={predictions?.[match.id]} />)
         ) : (
           <p className="py-3 text-center text-sm text-slate-600">Sin partidos.</p>
         )}
@@ -137,7 +145,7 @@ function AccordionItem({ title, subtitle, defaultOpen = false, children }: Accor
   );
 }
 
-export function LeagueSchedule({ matches, teamCounts, teamsByDivision }: LeagueScheduleProps) {
+export function LeagueSchedule({ matches, teamCounts, teamsByDivision, predictions, isLoggedIn = true }: LeagueScheduleProps) {
   const [division, setDivision] = useState(1);
   const divisionMatches = useMemo(
     () => matches.filter((match) => match.division === division),
@@ -175,6 +183,14 @@ export function LeagueSchedule({ matches, teamCounts, teamsByDivision }: LeagueS
           <p className="mt-1 text-sm text-slate-400">
             Selecciona división y despliega cada par ida/vuelta.
           </p>
+          {!isLoggedIn && (
+            <p className="mt-2 text-sm text-slate-500">
+              <Link className="text-ball-500 underline underline-offset-2 hover:text-ball-400 transition-colors" href="/login">
+                Inicia sesión
+              </Link>
+              {" "}para ver tus predicciones.
+            </p>
+          )}
         </div>
         <div className="flex rounded-full border border-white/10 bg-black/20 p-1">
           {[1, 2, 3].map((item) => (
@@ -207,8 +223,8 @@ export function LeagueSchedule({ matches, teamCounts, teamsByDivision }: LeagueS
               subtitle="ida y vuelta"
               title={`Jornada ${day} / ${returnDay}`}
             >
-              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} rows={firstLeg} title={`Ida · Jornada ${day}`} />
-              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} predictions={predictions} rows={firstLeg} title={`Ida · Jornada ${day}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} predictions={predictions} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
             </AccordionItem>
           );
         })}
