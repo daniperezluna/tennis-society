@@ -69,7 +69,7 @@ export default async function LigaPage() {
   ]);
   const sid = activeSeason?.id;
 
-  const [division1, division2, division3, matches, userPredictions] = await Promise.all([
+  const [division1, division2, division3, matches, allPredictions] = await Promise.all([
     getStandings(1, sid), getStandings(2, sid), getStandings(3, sid),
     prisma.match.findMany({
       include: {
@@ -79,17 +79,31 @@ export default async function LigaPage() {
       where: sid ? { seasonId: sid } : {},
       orderBy: [{ division: "asc" }, { matchday: "asc" }, { id: "asc" }],
     }),
-    user
+    sid
       ? prisma.prediction.findMany({
-          where: { userId: user.id, matchId: { not: null } },
-          select: { matchId: true, homeSets: true, awaySets: true },
+          where: { match: { seasonId: sid, status: "pending" }, matchId: { not: null } },
+          select: { matchId: true, homeSets: true, awaySets: true, userId: true },
         })
       : [],
   ]);
 
-  const predictionsMap: Record<number, string> = {};
-  for (const p of userPredictions) {
-    if (p.matchId != null) predictionsMap[p.matchId] = `${p.homeSets}-${p.awaySets}`;
+  const byMatch = new Map<number, { score: string; userId: number }[]>();
+  for (const p of allPredictions) {
+    if (p.matchId == null) continue;
+    if (!byMatch.has(p.matchId)) byMatch.set(p.matchId, []);
+    byMatch.get(p.matchId)!.push({ score: `${p.homeSets}-${p.awaySets}`, userId: p.userId });
+  }
+  const matchPredictions: Record<number, { score: string; count: number; isMyPick: boolean }[]> = {};
+  for (const [matchId, preds] of byMatch) {
+    const countMap = new Map<string, number>();
+    for (const p of preds) countMap.set(p.score, (countMap.get(p.score) ?? 0) + 1);
+    matchPredictions[matchId] = [...countMap.entries()]
+      .map(([score, count]) => ({
+        score,
+        count,
+        isMyPick: user != null && preds.some((p) => p.score === score && p.userId === user.id),
+      }))
+      .sort((a, b) => b.count - a.count);
   }
   const divisions = [division1, division2, division3];
   const teamCounts = { 1: division1.length, 2: division2.length, 3: division3.length };
@@ -179,8 +193,8 @@ export default async function LigaPage() {
 
       <LeagueSchedule
         isLoggedIn={!!user}
+        matchPredictions={matchPredictions}
         matches={matches}
-        predictions={predictionsMap}
         teamCounts={teamCounts}
         teamsByDivision={{
           1: division1.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),

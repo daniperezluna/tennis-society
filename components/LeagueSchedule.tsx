@@ -21,11 +21,13 @@ type ScheduleMatch = {
 
 type DivisionTeam = { id: number; name: string; logoUrl: string | null };
 
+type MatchPredDist = { score: string; count: number; isMyPick: boolean };
+
 type LeagueScheduleProps = {
   matches: ScheduleMatch[];
   teamCounts: Record<number, number>;
   teamsByDivision: Record<number, DivisionTeam[]>;
-  predictions?: Record<number, string>;
+  matchPredictions?: Record<number, MatchPredDist[]>;
   isLoggedIn?: boolean;
 };
 
@@ -51,9 +53,10 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function MatchRow({ match, prediction }: { match: ScheduleMatch; prediction?: string }) {
+function MatchRow({ match, distribution }: { match: ScheduleMatch; distribution?: MatchPredDist[] }) {
   const homeWon = match.status === "played" && (match.homeSets ?? 0) > (match.awaySets ?? 0);
   const awayWon = match.status === "played" && (match.awaySets ?? 0) > (match.homeSets ?? 0);
+  const total = distribution?.reduce((s, d) => s + d.count, 0) ?? 0;
 
   return (
     <article className="rounded-xl border border-white/8 bg-black/20 p-3">
@@ -72,10 +75,34 @@ function MatchRow({ match, prediction }: { match: ScheduleMatch; prediction?: st
       </div>
       <div className="mt-2 flex items-center justify-center gap-3">
         <StatusBadge status={match.status} />
-        {match.status === "pending" && prediction && (
-          <span className="text-xs font-semibold text-ball-500">Tu porra: {prediction}</span>
-        )}
       </div>
+      {match.status === "pending" && total > 0 && distribution && (
+        <div className="mt-2.5 border-t border-white/6 pt-2.5">
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            <span className="mr-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+              {total} {total === 1 ? "porra" : "porras"}
+            </span>
+            {distribution.map(({ score, count, isMyPick }) => {
+              const pct = Math.round((count / total) * 100);
+              return (
+                <span
+                  key={score}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                    isMyPick
+                      ? "bg-ball-500/15 text-ball-400 ring-1 ring-ball-500/40"
+                      : "bg-white/5 text-slate-400"
+                  }`}
+                >
+                  {score}
+                  <span className={`text-[10px] ${isMyPick ? "text-ball-500" : "text-slate-600"}`}>
+                    {pct}%
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -84,19 +111,19 @@ function MatchdayCard({
   title,
   rows,
   byeTeam,
-  predictions,
+  matchPredictions,
 }: {
   title: string;
   rows: ScheduleMatch[];
   byeTeam?: DivisionTeam | null;
-  predictions?: Record<number, string>;
+  matchPredictions?: Record<number, MatchPredDist[]>;
 }) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
       <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-amber-300">{title}</h4>
       <div className="space-y-2">
         {rows.length ? (
-          rows.map((match) => <MatchRow key={match.id} match={match} prediction={predictions?.[match.id]} />)
+          rows.map((match) => <MatchRow key={match.id} match={match} distribution={matchPredictions?.[match.id]} />)
         ) : (
           <p className="py-3 text-center text-sm text-slate-600">Sin partidos.</p>
         )}
@@ -145,7 +172,7 @@ function AccordionItem({ title, subtitle, defaultOpen = false, children }: Accor
   );
 }
 
-export function LeagueSchedule({ matches, teamCounts, teamsByDivision, predictions, isLoggedIn = true }: LeagueScheduleProps) {
+export function LeagueSchedule({ matches, teamCounts, teamsByDivision, matchPredictions, isLoggedIn = true }: LeagueScheduleProps) {
   const [division, setDivision] = useState(1);
   const divisionMatches = useMemo(
     () => matches.filter((match) => match.division === division),
@@ -223,8 +250,8 @@ export function LeagueSchedule({ matches, teamCounts, teamsByDivision, predictio
               subtitle="ida y vuelta"
               title={`Jornada ${day} / ${returnDay}`}
             >
-              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} predictions={predictions} rows={firstLeg} title={`Ida · Jornada ${day}`} />
-              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} predictions={predictions} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} matchPredictions={matchPredictions} rows={firstLeg} title={`Ida · Jornada ${day}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} matchPredictions={matchPredictions} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
             </AccordionItem>
           );
         })}
