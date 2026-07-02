@@ -79,7 +79,7 @@ export default async function PorraPage() {
                 ) : (
                   <span className="h-7 w-7 shrink-0 rounded-xl bg-white/10 ring-1 ring-white/10" />
                 )}
-                <span className="flex-1 font-semibold">{entry.name ?? entry.email}</span>
+                <span className="flex-1 font-semibold">{entry.team?.name ?? entry.name ?? entry.email}</span>
                 <span className="tabular-nums text-sm">
                   <span className="font-black text-ball-500">{entry.correct}</span>
                   <span className="text-text-muted"> / {entry.total}</span>
