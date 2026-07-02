@@ -53,7 +53,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function MatchRow({ match, distribution }: { match: ScheduleMatch; distribution?: MatchPredDist[] }) {
+function MatchRow({ match, distribution, isLoggedIn }: { match: ScheduleMatch; distribution?: MatchPredDist[]; isLoggedIn: boolean }) {
   const homeWon = match.status === "played" && (match.homeSets ?? 0) > (match.awaySets ?? 0);
   const awayWon = match.status === "played" && (match.awaySets ?? 0) > (match.homeSets ?? 0);
   const total = distribution?.reduce((s, d) => s + d.count, 0) ?? 0;
@@ -76,7 +76,7 @@ function MatchRow({ match, distribution }: { match: ScheduleMatch; distribution?
       <div className="mt-2 flex items-center justify-center gap-3">
         <StatusBadge status={match.status} />
       </div>
-      {match.status === "pending" && total > 0 && distribution && (
+      {isLoggedIn && match.status === "pending" && total > 0 && distribution && (
         <div className="mt-2.5 border-t border-white/6 pt-2.5">
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             <span className="mr-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
@@ -112,18 +112,20 @@ function MatchdayCard({
   rows,
   byeTeam,
   matchPredictions,
+  isLoggedIn,
 }: {
   title: string;
   rows: ScheduleMatch[];
   byeTeam?: DivisionTeam | null;
   matchPredictions?: Record<number, MatchPredDist[]>;
+  isLoggedIn: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
       <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-amber-300">{title}</h4>
       <div className="space-y-2">
         {rows.length ? (
-          rows.map((match) => <MatchRow key={match.id} match={match} distribution={matchPredictions?.[match.id]} />)
+          rows.map((match) => <MatchRow key={match.id} isLoggedIn={isLoggedIn} match={match} distribution={matchPredictions?.[match.id]} />)
         ) : (
           <p className="py-3 text-center text-sm text-slate-600">Sin partidos.</p>
         )}
@@ -250,8 +252,8 @@ export function LeagueSchedule({ matches, teamCounts, teamsByDivision, matchPred
               subtitle="ida y vuelta"
               title={`Jornada ${day} / ${returnDay}`}
             >
-              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} matchPredictions={matchPredictions} rows={firstLeg} title={`Ida · Jornada ${day}`} />
-              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} matchPredictions={matchPredictions} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(day) ?? null} isLoggedIn={isLoggedIn} matchPredictions={matchPredictions} rows={firstLeg} title={`Ida · Jornada ${day}`} />
+              <MatchdayCard byeTeam={byeByMatchday.get(returnDay) ?? null} isLoggedIn={isLoggedIn} matchPredictions={matchPredictions} rows={secondLeg} title={`Vuelta · Jornada ${returnDay}`} />
             </AccordionItem>
           );
         })}
