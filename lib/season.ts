@@ -1,3 +1,4 @@
+import { generateDoubleRoundRobin } from "@/lib/league";
 import prisma from "@/lib/prisma";
 
 type Season = NonNullable<Awaited<ReturnType<typeof prisma.season.findFirst>>>;
@@ -43,6 +44,13 @@ export async function createNewSeason(
       await tx.seasonTeam.createMany({
         data: teamAssignments.map((a) => ({ seasonId: season.id, teamId: a.teamId, division: a.division })),
       });
+      const matches = [1, 2, 3].flatMap((division) =>
+        generateDoubleRoundRobin(
+          teamAssignments.filter((a) => a.division === division).map((a) => ({ id: a.teamId, division })),
+          division
+        ).map((m) => ({ ...m, seasonId: season.id }))
+      );
+      if (matches.length) await tx.match.createMany({ data: matches });
     }
     return season;
   });

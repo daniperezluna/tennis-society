@@ -379,6 +379,7 @@ export async function createNewSeasonAction(formData: FormData) {
 
   await createNewSeason(name, assignments, closeCurrent);
   revalidatePath("/admin/temporadas");
+  revalidatePath("/admin/partidos");
   revalidatePath("/admin");
   revalidateCompetition();
 }
