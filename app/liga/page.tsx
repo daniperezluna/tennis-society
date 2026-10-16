@@ -62,6 +62,18 @@ function getRankColor(pos: number, total: number): string {
   return "text-slate-500 font-medium";
 }
 
+const GRID_COLS_CLASS: Record<number, string> = {
+  1: "",
+  2: "xl:grid-cols-2",
+  3: "xl:grid-cols-3",
+};
+
+const DIVISION_COUNT_TEXT: Record<number, string> = {
+  1: "la división activa",
+  2: "las dos divisiones activas",
+  3: "las tres divisiones",
+};
+
 export default async function LigaPage() {
   const [user, activeSeason] = await Promise.all([
     getAdminUser(),
@@ -105,7 +117,11 @@ export default async function LigaPage() {
       }))
       .sort((a, b) => b.count - a.count);
   }
-  const divisions = [division1, division2, division3];
+  const divisions = [division1, division2, division3]
+    .map((standings, index) => ({ number: index + 1, standings }))
+    .filter((d) => d.standings.length > 0);
+  const activeDivisions = divisions.map((d) => d.number);
+  const gridColsClass = GRID_COLS_CLASS[divisions.length] ?? "xl:grid-cols-3";
   const teamCounts = { 1: division1.length, 2: division2.length, 3: division3.length };
 
   return (
@@ -114,7 +130,9 @@ export default async function LigaPage() {
         <div>
           <h1 className="pb-2 text-6xl font-black leading-tight gradient-text">Liga</h1>
           <p className="mt-1 mb-8 text-slate-400">
-            Clasificaciones de las tres divisiones
+            {divisions.length > 0
+              ? `Clasificaciones de ${DIVISION_COUNT_TEXT[divisions.length]}`
+              : "Todavía no hay equipos asignados a ninguna división"}
             {activeSeason ? ` · ${activeSeason.name}` : ""}.
           </p>
         </div>
@@ -123,15 +141,15 @@ export default async function LigaPage() {
         </Link>
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-3">
-        {divisions.map((standings, index) => (
-          <article className="glass overflow-hidden rounded-3xl" key={index}>
+      <section className={`grid gap-6 ${gridColsClass}`}>
+        {divisions.map(({ number, standings }) => (
+          <article className="glass overflow-hidden rounded-3xl" key={number}>
             <div className={`flex items-center justify-between border-b border-white/10 px-5 py-4`}>
               <div className="flex items-center gap-3">
-                <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${DIVISION_COLORS[index + 1].badgeBg} ${DIVISION_COLORS[index + 1].badgeText}`}>
-                  {DIVISION_NAMES[index + 1]}
+                <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${DIVISION_COLORS[number].badgeBg} ${DIVISION_COLORS[number].badgeText}`}>
+                  {DIVISION_NAMES[number]}
                 </span>
-                <h2 className={`text-2xl font-black ${DIVISION_COLORS[index + 1].text}`}>División {index + 1}</h2>
+                <h2 className={`text-2xl font-black ${DIVISION_COLORS[number].text}`}>División {number}</h2>
               </div>
               <span className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-slate-400">
                 {standings.length} equipos
@@ -191,17 +209,20 @@ export default async function LigaPage() {
         ))}
       </section>
 
-      <LeagueSchedule
-        isLoggedIn={!!user}
-        matchPredictions={matchPredictions}
-        matches={matches}
-        teamCounts={teamCounts}
-        teamsByDivision={{
-          1: division1.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
-          2: division2.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
-          3: division3.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
-        }}
-      />
+      {activeDivisions.length > 0 && (
+        <LeagueSchedule
+          divisions={activeDivisions}
+          isLoggedIn={!!user}
+          matchPredictions={matchPredictions}
+          matches={matches}
+          teamCounts={teamCounts}
+          teamsByDivision={{
+            1: division1.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+            2: division2.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+            3: division3.map((r) => ({ id: r.team.id, name: r.team.name, logoUrl: r.team.logoUrl })),
+          }}
+        />
+      )}
     </main>
   );
 }

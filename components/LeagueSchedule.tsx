@@ -25,6 +25,7 @@ type MatchPredDist = { score: string; count: number; isMyPick: boolean };
 
 type LeagueScheduleProps = {
   matches: ScheduleMatch[];
+  divisions: number[];
   teamCounts: Record<number, number>;
   teamsByDivision: Record<number, DivisionTeam[]>;
   matchPredictions?: Record<number, MatchPredDist[]>;
@@ -174,8 +175,8 @@ function AccordionItem({ title, subtitle, defaultOpen = false, children }: Accor
   );
 }
 
-export function LeagueSchedule({ matches, teamCounts, teamsByDivision, matchPredictions, isLoggedIn = true }: LeagueScheduleProps) {
-  const [division, setDivision] = useState(1);
+export function LeagueSchedule({ matches, divisions, teamCounts, teamsByDivision, matchPredictions, isLoggedIn = true }: LeagueScheduleProps) {
+  const [division, setDivision] = useState(divisions[0] ?? 1);
   const divisionMatches = useMemo(
     () => matches.filter((match) => match.division === division),
     [matches, division],
@@ -222,7 +223,7 @@ export function LeagueSchedule({ matches, teamCounts, teamsByDivision, matchPred
           )}
         </div>
         <div className="flex rounded-full border border-white/10 bg-black/20 p-1">
-          {[1, 2, 3].map((item) => (
+          {divisions.map((item) => (
             <button
               className={`rounded-full px-4 py-2 text-sm font-black transition-colors ${
                 division === item
