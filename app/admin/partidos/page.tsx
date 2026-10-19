@@ -10,12 +10,25 @@ import { getActiveSeason, getSeasonTeams } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
-type Search = { team?: string; status?: string };
+type Search = { team?: string; team2?: string; status?: string };
 
 export default async function PartidosAdminPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requireAdmin();
   const [sp, activeSeason] = await Promise.all([searchParams, getActiveSeason().catch(() => null)]);
   const teamFilter = sp.team ? Number(sp.team) : null;
+  const team2Filter = sp.team2 ? Number(sp.team2) : null;
+  const playerIds = [teamFilter, team2Filter].filter((id): id is number => id != null);
+  const playersWhere =
+    playerIds.length === 2
+      ? {
+          OR: [
+            { homeTeamId: playerIds[0], awayTeamId: playerIds[1] },
+            { homeTeamId: playerIds[1], awayTeamId: playerIds[0] },
+          ],
+        }
+      : playerIds.length === 1
+        ? { OR: [{ homeTeamId: playerIds[0] }, { awayTeamId: playerIds[0] }] }
+        : {};
   const statusFilter = sp.status === "pending" || sp.status === "played" || sp.status === "walkover" ? sp.status : "all";
 
   const [seasonTeams, matches] = await Promise.all([
@@ -24,7 +37,7 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
       include: { homeTeam: true, awayTeam: true },
       where: {
         ...(activeSeason ? { seasonId: activeSeason.id } : {}),
-        ...(teamFilter ? { OR: [{ homeTeamId: teamFilter }, { awayTeamId: teamFilter }] } : {}),
+        ...playersWhere,
         ...(statusFilter !== "all" ? { status: statusFilter } : {}),
       },
       orderBy: [{ division: "asc" }, { matchday: "asc" }, { id: "asc" }],
@@ -58,7 +71,20 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
     enfrentamientos: Array.from(enfrentamientosMap.values()).filter((e) => e.division === division),
   }));
 
-  const filtersActive = teamFilter != null || statusFilter !== "all";
+  const filtersActive = playerIds.length > 0 || statusFilter !== "all";
+
+  const teamOptions = (
+    <>
+      <option value="">Todos</option>
+      {[1, 2, 3].map((div) => (
+        <optgroup key={div} label={DIVISION_NAMES[div]}>
+          {seasonTeams.filter((st) => st.division === div).map((st) => (
+            <option key={st.team.id} value={st.team.id}>{st.team.name}</option>
+          ))}
+        </optgroup>
+      ))}
+    </>
+  );
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
@@ -82,18 +108,11 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
         </div>
       </div>
 
-      <form className="mt-6 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1fr_1fr_auto]" method="get">
+      <form className="mt-6 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1fr_auto_1fr_auto]" method="get">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Jugador</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Jugador 1</span>
           <select className="rounded-lg bg-court-900 px-3 py-2" defaultValue={teamFilter ?? ""} name="team">
-            <option value="">Todos</option>
-            {[1, 2, 3].map((div) => (
-              <optgroup key={div} label={DIVISION_NAMES[div]}>
-                {seasonTeams.filter((st) => st.division === div).map((st) => (
-                  <option key={st.team.id} value={st.team.id}>{st.team.name}</option>
-                ))}
-              </optgroup>
-            ))}
+            {teamOptions}
           </select>
         </label>
         <label className="flex flex-col gap-1">
@@ -103,6 +122,12 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
             <option value="pending">Pendientes</option>
             <option value="played">Jugados</option>
             <option value="walkover">W/O</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Jugador 2</span>
+          <select className="rounded-lg bg-court-900 px-3 py-2" defaultValue={team2Filter ?? ""} name="team2">
+            {teamOptions}
           </select>
         </label>
         <div className="flex items-end gap-2">
