@@ -159,7 +159,17 @@ export default async function Home() {
       },
     }),
   ]);
-  const leaders = [division1[0], division2[0], division3[0]].filter(Boolean);
+  const activeDivisions = [division1, division2, division3]
+    .map((standings, index) => ({ division: index + 1, standings }))
+    .filter(({ standings }) => standings.length > 0);
+  const divisionLeaders = activeDivisions.map(({ division, standings }) => ({ division, position: 1, row: standings[0] }));
+  const leaders =
+    activeDivisions.length === 1
+      ? activeDivisions[0].standings
+          .slice(0, 5)
+          .map((row, index) => ({ division: activeDivisions[0].division, position: index + 1, row }))
+      : divisionLeaders;
+  const singleDivision = activeDivisions.length === 1;
 
   const allRecent = [
     ...recentLeague.map((m) => ({
@@ -241,8 +251,8 @@ export default async function Home() {
       recentLines.length
         ? `ÚLTIMOS RESULTADOS (de más reciente a más antiguo, mezcla de liga y copa):\n${recentLines.map((l, i) => `${i + 1}. ${l}`).join("\n")}`
         : "Todavía no se ha jugado ningún partido.",
-      leaders.length
-        ? `LÍDERES DE LIGA: ${leaders.map((r, i) => `División ${DIVISION_NAMES[i + 1]}: ${r.team.name} (${r.points} pts)`).join(" · ")}`
+      divisionLeaders.length
+        ? `LÍDERES DE LIGA: ${divisionLeaders.map(({ division, row }) => `División ${DIVISION_NAMES[division]}: ${row.team.name} (${row.points} pts)`).join(" · ")}`
         : "",
       `Total: ${playedMatches} partidos de liga jugados, ${pendingMatches} pendientes.`,
     ].filter(Boolean);
@@ -308,16 +318,18 @@ export default async function Home() {
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-white/8 p-4 backdrop-blur">
-            <p className="text-xs font-black uppercase tracking-[.25em] text-apipana-gold">Ahora mandan</p>
+            <p className="text-xs font-black uppercase tracking-[.25em] text-apipana-gold">
+              Ahora mandan{singleDivision && ` · ${DIVISION_NAMES[activeDivisions[0].division]}`}
+            </p>
             <div className="mt-4 grid gap-3">
-              {leaders.map((row, index) => (
+              {leaders.map(({ division, position, row }) => (
                 <Link
                   className="card-hover flex items-center gap-4 rounded-2xl border border-white/10 bg-[#110c1d]/45 p-4"
                   href="/liga"
                   key={row.team.id}
                 >
-                  <div className={`flex h-10 shrink-0 items-center justify-center rounded-xl px-2.5 text-xs font-black ${DIVISION_COLORS[index + 1].badgeBg} ${DIVISION_COLORS[index + 1].badgeText}`}>
-                    {DIVISION_NAMES[index + 1]}
+                  <div className={`flex h-10 shrink-0 items-center justify-center rounded-xl px-2.5 text-xs font-black ${DIVISION_COLORS[division].badgeBg} ${DIVISION_COLORS[division].badgeText}`}>
+                    {singleDivision ? `${position}º` : DIVISION_NAMES[division]}
                   </div>
                   <TeamLogo name={row.team.name} src={row.team.logoUrl} />
                   <div className="min-w-0 flex-1">
