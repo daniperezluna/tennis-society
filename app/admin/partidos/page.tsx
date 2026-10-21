@@ -31,7 +31,7 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
         : {};
   const statusFilter = sp.status === "pending" || sp.status === "played" || sp.status === "walkover" ? sp.status : "all";
 
-  const [seasonTeams, matches] = await Promise.all([
+  const [seasonTeams, matches, statusCounts] = await Promise.all([
     activeSeason ? getSeasonTeams(activeSeason.id) : Promise.resolve([]),
     prisma.match.findMany({
       include: { homeTeam: true, awayTeam: true },
@@ -42,7 +42,16 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
       },
       orderBy: [{ division: "asc" }, { matchday: "asc" }, { id: "asc" }],
     }),
+    prisma.match.groupBy({
+      by: ["status"],
+      where: activeSeason ? { seasonId: activeSeason.id } : {},
+      _count: { _all: true },
+    }),
   ]);
+  const pendingCount = statusCounts.find((c) => c.status === "pending")?._count._all ?? 0;
+  const managedCount = statusCounts
+    .filter((c) => c.status !== "pending")
+    .reduce((acc, c) => acc + c._count._all, 0);
 
   // Group matches by enfrentamiento (unordered pair of teams)
   type Enfrentamiento = {
@@ -93,6 +102,16 @@ export default async function PartidosAdminPage({ searchParams }: { searchParams
         <div>
           <h1 className="text-4xl font-black text-amber-300">Ligas</h1>
           <p className="mt-2 text-slate-300">Calendario automático. Cada enfrentamiento se juega al mejor de 3 partidos: 2-0, 2-1, 1-2 o 0-2.</p>
+        </div>
+        <div className="flex items-end gap-4 rounded-2xl border border-white/10 bg-white/5 px-5 py-3">
+          <div>
+            <p className="text-5xl font-black leading-none text-amber-300 tabular-nums">{pendingCount}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-400">Pendientes</p>
+          </div>
+          <div>
+            <p className="text-xl font-black leading-none text-emerald-300 tabular-nums">{managedCount}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Gestionados</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <form action={generateLeagues}>
