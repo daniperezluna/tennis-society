@@ -123,6 +123,14 @@ export default async function LigaPage() {
   const activeDivisions = divisions.map((d) => d.number);
   const gridColsClass = GRID_COLS_CLASS[divisions.length] ?? "xl:grid-cols-3";
   const teamCounts = { 1: division1.length, 2: division2.length, 3: division3.length };
+  const progressByDivision = Object.fromEntries(
+    [1, 2, 3].map((division) => {
+      const divisionMatches = matches.filter((m) => m.division === division);
+      const done = divisionMatches.filter((m) => m.status !== "pending").length;
+      const total = divisionMatches.length;
+      return [division, { done, total, percent: total > 0 ? Math.round((done / total) * 100) : 0 }];
+    }),
+  ) as Record<number, { done: number; total: number; percent: number }>;
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
@@ -155,6 +163,30 @@ export default async function LigaPage() {
                 {standings.length} equipos
               </span>
             </div>
+            {progressByDivision[number].total > 0 && (
+              <div className="border-b border-white/10 px-5 py-3">
+                <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-400">
+                  <span>Progreso de la liga</span>
+                  <span className="tabular-nums">
+                    {progressByDivision[number].done}/{progressByDivision[number].total} partidos ·{" "}
+                    <span className={`font-black ${DIVISION_COLORS[number].text}`}>{progressByDivision[number].percent}%</span>
+                  </span>
+                </div>
+                <div
+                  aria-label={`Progreso de la división ${number}`}
+                  aria-valuemax={100}
+                  aria-valuemin={0}
+                  aria-valuenow={progressByDivision[number].percent}
+                  className="h-2 overflow-hidden rounded-full bg-white/10"
+                  role="progressbar"
+                >
+                  <div
+                    className={`h-full rounded-full transition-all ${DIVISION_COLORS[number].badgeBg}`}
+                    style={{ width: `${progressByDivision[number].percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="score-table w-full table-fixed text-xs sm:text-sm">
                 <thead>
